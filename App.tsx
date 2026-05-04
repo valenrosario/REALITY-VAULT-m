@@ -32,6 +32,7 @@ import {
 import { SERIES_DATA, APP_NAME, APP_LOGO_URL, AVATAR_OPTIONS, SOCIAL_LINKS, MARQUEE_TEXT, SOUND_EFFECTS } from './constants';
 import { User, Series, Episode } from './types';
 import SeriesDetailView from './src/components/SeriesDetailView';
+import { CountdownTimer } from './src/components/CountdownTimer';
 // import BlingCursor from './BlingCursor';
 import { db, auth, handleFirestoreError, OperationType } from './firebase';
 import { doc, getDoc, setDoc, updateDoc, onSnapshot } from 'firebase/firestore';
@@ -1040,6 +1041,19 @@ function App() {
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'signup' | 'forgot'>('login');
   const [loading, setLoading] = useState(false);
+  const [isCountdownFinished, setIsCountdownFinished] = useState(false);
+
+  // Fecha objetivo: Hoy 4 de Mayo (4/5) a las 22:00hs Argentina (UTC-3)
+  // ART es UTC-3. 22:00 ART del 4 de mayo es 01:00 UTC del 5 de mayo.
+  const targetDate = React.useMemo(() => new Date('2026-05-05T01:00:00Z'), []);
+
+  useEffect(() => {
+    // Verificar si el contador ya terminó al cargar
+    if (new Date() >= targetDate) {
+      setIsCountdownFinished(true);
+    }
+  }, [targetDate]);
+
   const [isFetchingSeries, setIsFetchingSeries] = useState(true);
   const [view, setView] = useState<'home' | 'series' | 'watch' | 'my-list'>('home');
   
@@ -1637,6 +1651,13 @@ function App() {
 
   return (
     <div className="min-h-screen bg-white dark:bg-[#050505] text-gray-800 dark:text-gray-100 font-sans selection:bg-pink-300 selection:text-pink-900 flex flex-col transition-colors">
+      
+      {!isCountdownFinished && (
+        <CountdownTimer 
+          targetDate={targetDate} 
+          onFinish={() => setIsCountdownFinished(true)} 
+        />
+      )}
       
       {/* Loader Global */}
       {loading && <MagicLoader />}
