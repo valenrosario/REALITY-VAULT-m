@@ -1,0 +1,32 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "User profile information including Y2K identity.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Firebase Auth UID" },
+        "email": { "type": "string", "format": "email", "description": "User email address" },
+        "username": { "type": "string", "description": "Y2K Nickname" },
+        "avatar": { "type": "string", "description": "Selected avatar URL" },
+        "favorites": { 
+          "type": "array", 
+          "items": { "type": "string" },
+          "description": "List of favorite series IDs"
+        },
+        "watchedEpisodes": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "List of watched episode IDs"
+        }
+      },
+      "required": ["uid", "email", "username", "avatar"]
+    }
+  },
+  "firestore": {
+    "users/{userId}": {
+      "schema": "User",
+      "description": "User profile document"
+    }
+  }
+}

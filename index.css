@@ -1,0 +1,36 @@
+@import "tailwindcss";
+
+/* 1. Declarar la fuente */
+@font-face {
+  font-family: "Gravity";
+  src: url("./src/fonts/GravityGrotesk-Bold.ttf") format("truetype");
+  font-weight: bold;
+  font-style: normal;
+  font-display: swap;
+}
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  
+  /* 2. Registrar la nueva fuente */
+  --font-gravity: "Gravity", sans-serif;
+}
+
+body {
+  @apply text-gray-800 dark:text-white;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-white/20 rounded-full hover:bg-white/40;
+}

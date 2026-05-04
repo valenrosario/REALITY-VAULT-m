@@ -1,0 +1,84 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // 0. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isEmailVerified() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
+        (request.auth.token.email == "valenrosario6@gmail.com" && isEmailVerified())
+      );
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+
+    function isValidUser(data) {
+      return data.uid == request.auth.uid &&
+             data.email is string && data.email.size() <= 100 &&
+             data.username is string && data.username.size() >= 1 && data.username.size() <= 30 &&
+             data.avatar is string && data.avatar.size() <= 500 &&
+             (!('favorites' in data) || (data.favorites is list && data.favorites.size() <= 100)) &&
+             (!('watchedEpisodes' in data) || (data.watchedEpisodes is list && data.watchedEpisodes.size() <= 500));
+    }
+
+    // ===============================================================
+    // Collection Rules
+    // ===============================================================
+
+    match /users/{userId} {
+      // 3. Path Variable Hardening
+      allow get: if isValidId(userId) && (isOwner(userId) || isAdmin());
+      
+      // 8. Secure List Queries
+      allow list: if isSignedIn() && (isOwner(userId) || isAdmin());
+      
+      allow create: if isOwner(userId) && isValidUser(incoming());
+      
+      allow update: if isOwner(userId) && 
+                      isValidUser(incoming()) && 
+                      incoming().uid == existing().uid &&
+                      incoming().email == existing().email &&
+                      (
+                        // Action: Update Profile
+                        incoming().diff(existing()).affectedKeys().hasOnly(['username', 'avatar', 'favorites', 'watchedEpisodes'])
+                      );
+                      
+      allow delete: if isAdmin();
+    }
+  }
+}
