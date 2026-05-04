@@ -35,7 +35,7 @@ import SeriesDetailView from './src/components/SeriesDetailView';
 // import BlingCursor from './BlingCursor';
 import { db, auth, handleFirestoreError, OperationType } from './firebase';
 import { doc, getDoc, setDoc, updateDoc, onSnapshot } from 'firebase/firestore';
-import { onAuthStateChanged, signOut, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import { onAuthStateChanged, signOut, GoogleAuthProvider, signInWithPopup, signInAnonymously } from 'firebase/auth';
 
 
 // ==========================================
@@ -1180,53 +1180,80 @@ function App() {
     setLoading(true);
     try {
       let fireUser = auth.currentUser;
+      
+      // Intentamos login anónimo si no hay sesión para evitar el popup de Google en el iframe
+      // lo cual cumple con el requerimiento de "inicio de sesión falso" pero con persistencia.
       if (!fireUser) {
-        const provider = new GoogleAuthProvider();
-        const result = await signInWithPopup(auth, provider);
-        fireUser = result.user;
+        try {
+          const result = await signInAnonymously(auth);
+          fireUser = result.user;
+        } catch (anonError) {
+          console.warn("Anonymous sign in failed, using local fallback", anonError);
+          // Fallback a login totalmente "falso" pero persistente localmente
+          const localUid = localStorage.getItem('guest_uid') || `guest_${Math.random().toString(36).substring(2, 11)}`;
+          localStorage.setItem('guest_uid', localUid);
+          fireUser = { uid: localUid, email: '', isAnonymous: true } as any;
+        }
       }
       
       if (!fireUser) throw new Error("No user session found");
 
-      const docRef = doc(db, 'users', fireUser.uid);
-      const docSnap = await getDoc(docRef);
-      
-      let userData;
-      if (!docSnap.exists()) {
-        userData = {
+      let finalUserData: any;
+
+      // Si es un usuario real de Firebase, intentamos Firestore
+      if (!fireUser.uid.startsWith('guest_')) {
+        const docRef = doc(db, 'users', fireUser.uid);
+        const docSnap = await getDoc(docRef);
+        
+        if (!docSnap.exists()) {
+          finalUserData = {
+            uid: fireUser.uid,
+            email: fireUser.email || '',
+            username: info.username,
+            avatar: info.avatar,
+            favorites: [],
+            watchedEpisodes: [],
+            isPremium: false,
+            createdAt: new Date().toISOString()
+          };
+          await setDoc(docRef, finalUserData);
+        } else {
+          // Upgrade existing profile with new choice if they specifically went through the modal
+          await updateDoc(docRef, {
+            username: info.username,
+            avatar: info.avatar
+          });
+          const updatedDoc = await getDoc(docRef);
+          finalUserData = updatedDoc.data();
+        }
+        
+        setUser({
           uid: fireUser.uid,
           email: fireUser.email || '',
+          username: finalUserData?.username || '',
+          avatar: finalUserData?.avatar || '',
+          favorites: finalUserData?.favorites || [],
+          watchedEpisodes: finalUserData?.watchedEpisodes || [],
+          isPremium: finalUserData?.isPremium || false
+        });
+      } else {
+        // Para usuarios "guest" (cuando Auth falla), guardamos en localStorage
+        finalUserData = {
+          uid: fireUser.uid,
+          email: '',
           username: info.username,
           avatar: info.avatar,
-          favorites: [],
-          watchedEpisodes: [],
-          isPremium: false,
-          createdAt: new Date().toISOString()
+          favorites: favorites, // Usamos el estado actual si ya existe
+          watchedEpisodes: watchedEpisodes,
+          isPremium: false
         };
-        await setDoc(docRef, userData);
-      } else {
-        // Upgrade existing profile with new choice if they specifically went through the modal
-        await updateDoc(docRef, {
-          username: info.username,
-          avatar: info.avatar
-        });
-        const updatedDoc = await getDoc(docRef);
-        userData = updatedDoc.data();
+        localStorage.setItem('guest_user_data', JSON.stringify(finalUserData));
+        setUser(finalUserData);
       }
-      
-      setUser({
-        uid: fireUser.uid,
-        email: fireUser.email || '',
-        username: userData?.username || '',
-        avatar: userData?.avatar || '',
-        favorites: userData?.favorites || [],
-        watchedEpisodes: userData?.watchedEpisodes || [],
-        isPremium: userData?.isPremium || false
-      });
-      
-      setFavorites(userData?.favorites || []);
-      setWatchedEpisodes(userData?.watchedEpisodes || []);
       setIsAuthOpen(false);
+      
+      setFavorites(finalUserData?.favorites || []);
+      setWatchedEpisodes(finalUserData?.watchedEpisodes || []);
       showAlert("¡Bienvenido!", `Hola ${info.username}`, "success");
     } catch (error) {
       console.error("Error logging in:", error);

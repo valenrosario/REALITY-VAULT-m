@@ -74,7 +74,7 @@ const SeriesDetailView = ({
                   e.stopPropagation();
                   if (onFlashClick) onFlashClick();
                 }}
-                src="https://s4.ezgif.com/tmp/ezgif-4a0e5706c0260b34.gif" 
+                src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjG765V9SZYe_xm6L7OR40vFg458HzgB846wX2jdgFf-bukpEJgiQ6ZMgPwNpu7Mfk0FUGmABIgMj5GTKdH8tnr_7R7r6X2fRplfiOznnkA6gKcV6Nft6udNMbGsro3GaWzn6fs_6tBkRJFMVzZuGJ-R-yyoQHjaC052-T-X5wp9JbaX7Vhg4gcKNker00/s2007/moda%20granjera.png" 
                 alt="Moda Granjera Deco" 
                 className="w-24 h-auto md:w-32 lg:w-44 cursor-pointer pointer-events-auto"
                 referrerPolicy="no-referrer"
@@ -273,10 +273,10 @@ const SeriesDetailView = ({
 
       {/* Mobile Only: Extra deco at bottom (Requested for The Simple Life) */}
       {selectedSeries.id === "serie-1" && (
-        <div className="md:hidden w-full overflow-hidden relative mt-4 mb-0">
+        <div className="md:hidden w-full overflow-hidden relative m-0 p-0 flex">
            <motion.img 
-             initial={{ opacity: 0, scale: 0.98 }}
-             animate={{ opacity: 1, scale: 1 }}
+             initial={{ opacity: 0 }}
+             animate={{ opacity: 1 }}
              whileTap={{ scale: 0.98 }}
              onClick={(e) => {
                e.stopPropagation();
@@ -284,7 +284,7 @@ const SeriesDetailView = ({
              }}
              src="https://s4.ezgif.com/tmp/ezgif-4a0e5706c0260b34.gif"
              alt="Moda Granjera Mobile Bottom"
-             className="w-full h-auto cursor-pointer block"
+             className="w-full h-auto cursor-pointer block m-0 p-0"
              referrerPolicy="no-referrer"
            />
         </div>
