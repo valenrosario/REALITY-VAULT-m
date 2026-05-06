@@ -39,19 +39,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                }
             }
             
-            // Fallback for new social login or similar
-            const newUser: User = {
-              uid: firebaseUser.uid,
-              email: firebaseUser.email || '',
-              username: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'Nuevo Usuario',
-              avatar: AVATAR_OPTIONS[0],
-              favorites: [],
-              watchedEpisodes: [],
-              isPremium: false,
-            };
-            // Persist the fallback profile so it's not missing next time
-            await setDoc(doc(db, 'users', firebaseUser.uid), newUser);
-            setState({ user: newUser, loading: false, isReady: true });
+      // Fallback for new social login or similar
+      const newUser: User = {
+        uid: firebaseUser.uid,
+        email: firebaseUser.email || '',
+        username: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'Nuevo Usuario',
+        avatar: AVATAR_OPTIONS[0],
+        favorites: [],
+        watchedEpisodes: [],
+        isPremium: false,
+      };
+      // Persist the fallback profile so it's not missing next time
+      try {
+        await setDoc(doc(db, 'users', firebaseUser.uid), newUser);
+      } catch (error) {
+        handleFirestoreError(error, OperationType.WRITE, `users/${firebaseUser.uid}`);
+      }
+      setState({ user: newUser, loading: false, isReady: true });
           }
         } catch (error) {
           console.error("Auth initialization error:", error);

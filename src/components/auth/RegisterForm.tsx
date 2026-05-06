@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
-import { auth, db } from '../../../firebase';
+import { auth, db, handleFirestoreError, OperationType } from '../../../firebase';
 import { AuthFormProps, User } from '../../../types';
 import { motion } from 'motion/react';
 import { User as UserIcon, Mail, Lock, AlertCircle, Loader2 } from 'lucide-react';
@@ -67,7 +67,11 @@ export const RegisterForm: React.FC<AuthFormProps> = ({ onSuccess, onSwitchMode 
         isPremium: false
       };
 
-      await setDoc(doc(db, 'users', firebaseUser.uid), newUser);
+      try {
+        await setDoc(doc(db, 'users', firebaseUser.uid), newUser);
+      } catch (error) {
+        handleFirestoreError(error, OperationType.WRITE, `users/${firebaseUser.uid}`);
+      }
       
       if (onSuccess) onSuccess();
     } catch (err: any) {

@@ -282,7 +282,7 @@ const SeriesDetailView = ({
                e.stopPropagation();
                if (onFlashClick) onFlashClick();
              }}
-             src="https://s4.ezgif.com/tmp/ezgif-4a0e5706c0260b34.gif"
+             src="https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExM2Z4Nzk4YjF6ZWx6ZWx6ZWx6ZWx6ZWx6ZWx6ZWx6ZWx6ZWx6ZWx6JmVwPXYxX2ludGVybmFsX2dpZl9ieV9pZCZjdD1n/mZGV0HKpYK3y8/giphy.gif"
              alt="Moda Granjera Mobile Bottom"
              className="w-full h-auto cursor-pointer block m-0 p-0"
              referrerPolicy="no-referrer"

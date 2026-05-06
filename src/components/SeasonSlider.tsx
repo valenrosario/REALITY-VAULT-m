@@ -46,7 +46,7 @@ const SeasonSlider: React.FC<SeasonSliderProps> = ({ season, activeEpisode, onEp
        const index = season.episodes.findIndex((ep: any) => ep.id === activeEpisode.id);
        if (index !== -1) {
           const isMobile = window.innerWidth < 768;
-          const cardWidth = isMobile ? 216 : 296; 
+          const cardWidth = isMobile ? 216 : 296; // 200 + 16 (gap) or 280 + 16 (gap)
           const containerWidth = scrollContainerRef.current.clientWidth;
           const scrollPos = (index * cardWidth) - (containerWidth / 2) + (cardWidth / 2);
           scrollContainerRef.current.scrollTo({ left: scrollPos, behavior: 'smooth' });
@@ -86,7 +86,7 @@ const SeasonSlider: React.FC<SeasonSliderProps> = ({ season, activeEpisode, onEp
           return (
             <div 
               key={ep.id} 
-              className={`min-w-[170px] w-[170px] sm:min-w-[200px] sm:w-[200px] md:min-w-[280px] md:w-[280px] flex flex-col gap-2 md:gap-3 p-0 rounded-xl transition-all duration-300 ease-in-out group snap-center relative
+              className={`min-w-[200px] w-[200px] sm:min-w-[220px] sm:w-[220px] md:min-w-[280px] md:w-[280px] flex flex-col gap-2 md:gap-3 p-0 rounded-xl transition-all duration-300 ease-in-out group snap-center relative
                 ${isActive ? 'z-10' : 'hover:z-10'}
                 ${isEpComingSoon ? 'cursor-default' : 'cursor-pointer'}
               `}

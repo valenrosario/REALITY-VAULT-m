@@ -30,7 +30,7 @@ import {
   TrendingUp
 } from 'lucide-react';
 import { SERIES_DATA, APP_NAME, APP_LOGO_URL, AVATAR_OPTIONS, SOCIAL_LINKS, MARQUEE_TEXT, SOUND_EFFECTS } from './constants';
-import { Series, Episode, AuthState } from './types';
+import { Series, Episode, AuthState, Season, User as UserType } from './types';
 import SeriesDetailView from './src/components/SeriesDetailView';
 // import BlingCursor from './BlingCursor';
 import { db, auth, handleFirestoreError, OperationType } from './firebase';
@@ -102,7 +102,7 @@ const Button = ({ children, onClick, variant = 'primary', className = '', disabl
 };
 
 // --- COMPONENTE DE DESLIZADOR DE TEMPORADA ---
-const SeasonSlider = ({ season, activeEpisode, onEpisodeClick, user, isComingSoon, watchedEpisodes }: { season: any, activeEpisode: any, onEpisodeClick: (ep: any) => void, user: any, isComingSoon?: boolean, watchedEpisodes?: string[], key?: any }) => {
+const SeasonSlider = ({ season, activeEpisode, onEpisodeClick, user, isComingSoon, watchedEpisodes }: { season: Season, activeEpisode: Episode | null, onEpisodeClick: (ep: Episode) => void, user: UserType | null, isComingSoon?: boolean, watchedEpisodes?: string[], key?: any }) => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [scrollProgress, setScrollProgress] = useState(0);
 
@@ -181,7 +181,7 @@ const SeasonSlider = ({ season, activeEpisode, onEpisodeClick, user, isComingSoo
         ref={scrollContainerRef}
         className="flex overflow-x-auto pt-4 pb-8 gap-4 snap-x snap-mandatory scroll-smooth px-4 no-scrollbar"
       >
-        {season.episodes.map((ep: any) => {
+        {season.episodes.map((ep: Episode) => {
           const isActive = activeEpisode?.id === ep.id;
           const isWatched = watchedEpisodes?.includes(ep.id);
           const isEpComingSoon = ep.isComingSoon || isComingSoon;
@@ -930,13 +930,13 @@ const HomeView = ({
           <div className="flex overflow-x-auto gap-2 md:gap-6 py-4 md:py-6 px-2 md:px-4 snap-x snap-mandatory scroll-smooth no-scrollbar">
             {isLoadingSeries ? (
               Array.from({ length: 5 }).map((_, i) => (
-                <div key={`skeleton-${i}`} className="min-w-[160px] w-[160px] md:min-w-[240px] md:w-[240px] snap-center">
+                <div key={`skeleton-${i}`} className="min-w-[150px] w-[150px] md:min-w-[240px] md:w-[240px] snap-center">
                   <SeriesCardSkeleton />
                 </div>
               ))
             ) : (
               retroSeries.map((serie) => (
-                <div key={serie.id} className="min-w-[160px] w-[160px] md:min-w-[240px] md:w-[240px] snap-center">
+                <div key={serie.id} className="min-w-[150px] w-[150px] md:min-w-[240px] md:w-[240px] snap-center">
                   <SeriesCard 
                     serie={serie} 
                     isFav={favorites.includes(serie.id)}
@@ -966,7 +966,7 @@ const HomeView = ({
               const serie = SERIES_DATA.find(s => s.id === topItem.id);
               if (!serie) return null;
               return (
-                <div key={`top-${index}`} className="min-w-[160px] w-[160px] md:min-w-[240px] md:w-[240px] snap-center">
+                <div key={`top-${index}`} className="min-w-[150px] w-[150px] md:min-w-[240px] md:w-[240px] snap-center">
                   <SeriesCard 
                     serie={serie} 
                     isFav={favorites.includes(serie.id)}
@@ -996,7 +996,7 @@ const HomeView = ({
             <div className="flex overflow-x-auto gap-3 md:gap-6 py-4 md:py-6 px-2 md:px-4 snap-x snap-mandatory scroll-smooth no-scrollbar">
               {isLoadingSeries ? (
                 Array.from({ length: 4 }).map((_, i) => (
-                  <div key={`coming-skeleton-${i}`} className="min-w-[200px] md:min-w-[280px] lg:min-w-[320px] aspect-[16/9] snap-center">
+                  <div key={`coming-skeleton-${i}`} className="min-w-[240px] md:min-w-[320px] lg:min-w-[400px] aspect-[16/9] snap-center">
                     <WideSeriesCardSkeleton />
                   </div>
                 ))
@@ -1005,7 +1005,7 @@ const HomeView = ({
                   <div 
                     key={serie.id} 
                     onClick={() => onSeriesClick(serie)}
-                    className="min-w-[200px] md:min-w-[280px] lg:min-w-[320px] aspect-[16/9] snap-center cursor-pointer group/card relative"
+                    className="min-w-[240px] md:min-w-[320px] lg:min-w-[400px] aspect-[16/9] snap-center cursor-pointer group/card relative"
                   >
                      <div className="w-full h-full rounded-xl overflow-hidden shadow-lg transition-all duration-300 transform hover:scale-105 ring-2 ring-transparent hover:ring-white ring-offset-2 ring-offset-transparent">
                         <img 
@@ -1206,8 +1206,8 @@ function App() {
       setComingSoonModalSeries(series);
       return;
     }
-    const targetSeries = series.id === "serie-1-extra" 
-      ? SERIES_DATA.find(s => s.id === "serie-1") || series 
+    const targetSeries = series.id.includes("extra") 
+      ? SERIES_DATA.find(s => s.id === series.id.replace("-extra", "")) || series 
       : series;
     setSelectedSeries(targetSeries);
     setIsAboutExpanded(false); // Resetear estado de "Leer más"
@@ -1240,7 +1240,7 @@ function App() {
       setView('watch');
       setLoading(false);
       window.scrollTo(0,0);
-    }, 1500);
+    }, 800);
   };
 
   const showAlert = (title: string, msg: string, type: 'info' | 'error' | 'success' = 'info') => {
@@ -1288,61 +1288,71 @@ function App() {
   const renderWatch = () => {
     if (!activeEpisode) return null;
     
-    // Fix Google Drive URLs: replace /view with /preview for embedding
-    const processedVideoUrl = activeEpisode.videoUrl ? activeEpisode.videoUrl.replace(/\/view.*/, '/preview') : undefined;
+    // Fix Google Drive URLs: handle different formats and ensure /preview is used for embedding
+    let processedVideoUrl = activeEpisode.videoUrl;
+    if (processedVideoUrl && processedVideoUrl.includes('drive.google.com')) {
+      if (processedVideoUrl.includes('/view')) {
+        processedVideoUrl = processedVideoUrl.replace(/\/view.*/, '/preview');
+      } else if (processedVideoUrl.includes('/open?id=')) {
+        processedVideoUrl = processedVideoUrl.replace('/open?id=', '/file/d/') + '/preview';
+      } else if (!processedVideoUrl.endsWith('/preview')) {
+        processedVideoUrl = processedVideoUrl.split('?')[0] + '/preview';
+      }
+    }
 
     return (
-      <div className="max-w-7xl mx-auto px-4 py-8 flex flex-col items-center fade-in pt-24">
-        <div className="w-full flex justify-between items-center mb-6">
-           <button 
-            onClick={handleBackToSeries} 
-            className="flex items-center gap-2 text-[#fe000b] font-bold hover:bg-[#fe000b]/10 bg-white/10 dark:bg-slate-800/50 backdrop-blur-md px-4 py-2 rounded-full shadow-sm border border-[#fe000b] transition-all duration-300"
-          >
-            <ArrowLeft size={20} /> Volver
-          </button>
-          <div className="text-right">
-             <h2 className="font-gravity text-xl text-pink-700 dark:text-pink-300 hidden md:block">{activeEpisode.title}</h2>
+      <div className={`w-full max-w-5xl mx-auto flex flex-col items-center fade-in ${isFullscreen ? 'p-0 m-0' : 'px-0 md:px-4 py-2 md:py-8 pt-16 md:pt-24'}`}>
+        {!isFullscreen && (
+          <div className="w-full flex justify-between items-center mb-4 md:mb-6 px-4 md:px-0">
+             <button 
+              onClick={handleBackToSeries} 
+              className="flex items-center gap-2 text-[#fe000b] font-bold hover:bg-[#fe000b]/10 bg-white/10 dark:bg-slate-800/50 backdrop-blur-md px-3 md:px-4 py-1.5 md:py-2 rounded-full shadow-sm border border-[#fe000b] transition-all duration-300 text-sm md:text-base group"
+            >
+              <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" /> Volver
+            </button>
+            <div className="text-right">
+               <h2 className="font-gravity text-lg md:text-xl text-pink-700 dark:text-pink-300 hidden md:block">{activeEpisode.title}</h2>
+            </div>
           </div>
-        </div>
+        )}
         
         {/* Contenedor de Video Optimizado */}
         <div 
           ref={videoContainerRef}
-          className={`w-full bg-black overflow-hidden relative z-10 mb-6 transition-all ${isFullscreen ? 'rounded-none border-none' : 'rounded-3xl shadow-2xl border-4 border-pink-200/50 dark:border-pink-800/50'}`}
+          className={`w-full bg-black relative z-[60] transition-all duration-500 overflow-hidden ${
+            isFullscreen 
+              ? 'fixed inset-0 h-screen w-screen z-[9999] rounded-none border-none m-0 p-0' 
+              : 'mb-4 md:mb-6 md:rounded-3xl shadow-lg md:shadow-2xl md:border-4 border-pink-200/50 dark:border-pink-800/50'
+          }`}
         >
-          <div className="relative pt-[56.25%]"> {/* Aspect Ratio 16:9 */}
+          <div className={`relative bg-black w-full shadow-inner ${isFullscreen ? 'h-full flex items-center justify-center' : 'pt-[56.25%]'}`}>
             <iframe 
-              className="absolute top-0 left-0 w-full h-full"
+              className="absolute top-0 left-0 w-full h-full border-0"
               src={processedVideoUrl || undefined} 
               title={activeEpisode.title} 
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+              allowFullScreen
             ></iframe>
             {/* El "parche" que bloquea el clic en el botón de la esquina */}
-            <div style={{
-              position: 'absolute',
-              top: 0,
-              right: 0,
-              width: '60px',  // Ancho suficiente para tapar el botón
-              height: '60px', // Alto suficiente para tapar el botón
-              backgroundColor: 'transparent', // Ponle 'black' si además de bloquear el clic quieres que no se vea
-              zIndex: 20
-            }}></div>
+            {!isFullscreen && <div className="absolute top-0 right-0 w-12 h-12 md:w-16 md:h-16 z-20 cursor-default bg-transparent" />}
 
             {/* Botón de Pantalla Completa Personalizado */}
             <button 
               onClick={toggleFullscreen}
-              className="absolute top-4 left-4 md:top-6 md:left-6 z-30 p-2 bg-black/50 hover:bg-pink-500/80 text-white rounded-full backdrop-blur-md transition-all border border-white/20"
-              title="Pantalla Completa"
+              className={`absolute z-30 p-2 md:p-3 bg-black/60 hover:bg-pink-600 text-white rounded-full backdrop-blur-md transition-all border border-white/20 shadow-xl ${
+                isFullscreen ? 'top-4 right-4' : 'top-4 left-4 md:top-6 md:left-6'
+              }`}
+              title={isFullscreen ? "Salir de Pantalla Completa" : "Pantalla Completa"}
             >
-              {isFullscreen ? <Minimize size={20} /> : <Maximize size={20} />}
+              {isFullscreen ? <Minimize size={24} /> : <Maximize size={24} />}
             </button>
 
             {/* Logo Reality Vault en el reproductor */}
-            <div className={`absolute z-20 pointer-events-none transition-all duration-300 ${isFullscreen ? 'bottom-24 right-4 md:bottom-20 md:right-8' : 'bottom-4 right-4 md:bottom-6 md:right-6'}`}>
+            <div className={`absolute z-20 pointer-events-none transition-all duration-300 ${isFullscreen ? 'bottom-8 right-8' : 'bottom-4 right-4 md:bottom-6 md:right-6'}`}>
               <img 
                 src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgMJ-pH_Y36jVEiqf37tJlAcWHHe17x0TrhCYFAsEdaxUgvfRk1nuuLa8hFdegCm2eXFXD2KcDNexTGzttQFJzMz9VJhVnrww8jKxKXqG3cWWNadkJ9xeNJm5Q5ZRWJrfkdILtrBRHCYHf9BzEVcJdYzdYtSqW0hfQaq8jpLlqAlCaQ7ZzJIisUk164XhA/s1684/REALITY%20VAULT%20LOGO%20tr.png" 
                 alt="Reality Vault Logo" 
-                className="h-3 md:h-5 w-auto opacity-70 drop-shadow-md"
+                className={`transition-all duration-300 ${isFullscreen ? 'h-6 md:h-10' : 'h-3 md:h-5'} w-auto opacity-70 drop-shadow-md`}
                 referrerPolicy="no-referrer"
               />
             </div>
