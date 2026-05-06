@@ -224,7 +224,7 @@ export const SERIES_DATA: Series[] = [
             duration: "22 min",
             thumbnail: "https://ichef.bbci.co.uk/images/ic/304x171/p0kbwzpr.jpg",
             description: "En su última parada en Texas, las chicas arrean ganado e intentan salvar a los animales del matadero.",
-            videoUrl: "https://www.youtube.com/embed/8Y7Wqerf78"
+            videoUrl: "https://drive.google.com/file/d/1Jj-YyHRdCkMv4mRFX9BbZ9M3y4A8MSP_/view?usp=drive_link"
           },
           {
             id: "s2e11",
@@ -232,7 +232,7 @@ export const SERIES_DATA: Series[] = [
             duration: "42 min",
             thumbnail: "https://ichef.bbci.co.uk/images/ic/304x171/p0kcb5sk.jpg",
             description: "Recopilación de escenas eliminadas, bloopers y entrevistas con familias y jefes de la segunda temporada.",
-            videoUrl: "https://www.youtube.com/embed/8Y7Wqerf78"
+            videoUrl: "https://drive.google.com/file/d/12IO85DYYp9Ykem7nzyj1TzQlFNaG2gSO/view?usp=drive_link"
           }
         ]
       },
