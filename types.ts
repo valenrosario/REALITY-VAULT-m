@@ -57,6 +57,17 @@ export interface User {
   isPremium?: boolean;
 }
 
+export interface AuthState {
+  user: User | null;
+  loading: boolean;
+  isReady: boolean;
+}
+
+export interface AuthFormProps {
+  onSuccess?: () => void;
+  onSwitchMode?: () => void;
+}
+
 export interface SocialLink {
   platform: string;
   url: string;

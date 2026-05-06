@@ -30,12 +30,15 @@ import {
   TrendingUp
 } from 'lucide-react';
 import { SERIES_DATA, APP_NAME, APP_LOGO_URL, AVATAR_OPTIONS, SOCIAL_LINKS, MARQUEE_TEXT, SOUND_EFFECTS } from './constants';
-import { User, Series, Episode } from './types';
+import { Series, Episode, AuthState } from './types';
 import SeriesDetailView from './src/components/SeriesDetailView';
 // import BlingCursor from './BlingCursor';
 import { db, auth, handleFirestoreError, OperationType } from './firebase';
 import { doc, getDoc, setDoc, updateDoc, onSnapshot } from 'firebase/firestore';
-import { onAuthStateChanged, signOut, GoogleAuthProvider, signInWithPopup, signInAnonymously } from 'firebase/auth';
+import { signOut } from 'firebase/auth';
+import { useAuth, AuthProvider } from './src/contexts/AuthContext';
+import { LoginForm } from './src/components/auth/LoginForm';
+import { RegisterForm } from './src/components/auth/RegisterForm';
 
 
 // ==========================================
@@ -565,8 +568,6 @@ const HomeView = ({
   const favoriteSeries = SERIES_DATA.filter(s => favorites.includes(s.id) && s.id !== "serie-charm-school");
   
   const banners = [
-    SERIES_DATA.find(s => s.id === "serie-1")!,
-    SERIES_DATA.find(s => s.id === "serie-3")!,
     {
       ...SERIES_DATA.find(s => s.id === "serie-1")!,
       mobileBannerImage: "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEh-pXI-BYvApJ1ahhjrbrjM0QooO3dAq3pZ_PrerEQcyO9bv4k1xOI_J5oWDDZMKTkR22YI-UTdeMX75yrXi7Ru8hAUiGg8850I83A-8_hp0Pu-WwYGZCO6c6s0pkMGfoO-h7s5u3JLMJVQgUuzf0syOzbWtASlJRatRB4vGjSkqZnjqIh-5gYX3np_Qls/s2160/3.png",
@@ -577,6 +578,8 @@ const HomeView = ({
       bannerText: "Segunda Temporada Disponible",
       isThirdBanner: true // Marker for custom sizing
     } as any,
+    SERIES_DATA.find(s => s.id === "serie-3")!,
+    SERIES_DATA.find(s => s.id === "serie-1")!,
     {
       ...SERIES_DATA.find(s => s.id === "serie-2")!,
       mobileBannerImage: "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEiNTTC68GkkBhUfpbIVnLQeUU6VQG5rwLFd9u5i2k2QucydcVyCPsd_XJkYdaGFXDON3zXgIeRMbFxVyCIFuU3VHE4c-Ydrd2vWBD9bG_rHgMFqRDIXIWLDOsqRfs826vzEUm3Nl7gjJuVHVN4mvI8f9US-IjjiL2X4R0D0BfMHOeiFlczJwzVlygj03w0/s2160/sa.png",
@@ -1036,7 +1039,7 @@ const HomeView = ({
 
 function App() {
   // ESTADOS
-  const [user, setUser] = useState<User | null>(null);
+  const { user, logout, updateUserData, loading: authLoading } = useAuth();
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'signup' | 'forgot'>('login');
   const [loading, setLoading] = useState(false);
@@ -1053,9 +1056,6 @@ function App() {
   // Datos seleccionados
   const [selectedSeries, setSelectedSeries] = useState<Series | null>(null);
   const [activeEpisode, setActiveEpisode] = useState<Episode | null>(null);
-  
-  // Estado para la selección de avatar en el registro
-  const [selectedAvatar, setSelectedAvatar] = useState(AVATAR_OPTIONS[0]);
   
   // Episodios vistos (IDs)
   const [watchedEpisodes, setWatchedEpisodes] = useState<string[]>([]);
@@ -1102,7 +1102,6 @@ function App() {
     }
   };
 
-  // Simular carga inicial - Ahora con Firebase Auth Real
   useEffect(() => {
     // Preload Images
     const imagesToLoad = SERIES_DATA.flatMap(s => [s.coverImage, s.bannerImage, s.mobileBannerImage, s.logoUrl].filter(Boolean)) as string[];
@@ -1111,144 +1110,22 @@ function App() {
       img.src = src;
     });
 
-    // Firebase Auth Listener
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (firebaseUser) {
-        setIsFetchingSeries(true);
-        try {
-          // Buscamos el perfil por UID
-          const docRef = doc(db, 'users', firebaseUser.uid);
-          const docSnap = await getDoc(docRef);
-          
-          if (docSnap.exists()) {
-            const data = docSnap.data();
-            setUser({
-              uid: firebaseUser.uid,
-              email: firebaseUser.email || '', 
-              username: data.username,
-              avatar: data.avatar,
-              favorites: data.favorites || [],
-              watchedEpisodes: data.watchedEpisodes || [],
-              isPremium: data.isPremium || false
-            });
-            setFavorites(data.favorites || []);
-            setWatchedEpisodes(data.watchedEpisodes || []);
-          } else {
-            // Si el usuario está autenticado pero no tiene perfil,
-            // tal vez es una sesión anónima nueva o alguien que borró su perfil.
-            // No hacemos nada, el AuthModal se encargará de crear el perfil.
-            setUser(null); 
-          }
-        } catch (error) {
-          console.error("Error fetching user data:", error);
-          try { handleFirestoreError(error, OperationType.GET, `users/${firebaseUser.uid}`); } catch(e) {}
-        } finally {
-          setIsFetchingSeries(false);
-        }
-      } else {
-        try {
-          const guestDataStr = localStorage.getItem('guest_user_data');
-          if (guestDataStr) {
-            const guestData = JSON.parse(guestDataStr);
-            setUser(guestData);
-            setFavorites(guestData.favorites || []);
-            setWatchedEpisodes(guestData.watchedEpisodes || []);
-          } else {
-            setUser(null);
-          }
-        } catch (e) {
-          console.error("Error parsing guest data", e);
-          setUser(null);
-        }
-        setIsFetchingSeries(false);
-      }
-    });
-
-    return () => unsubscribe();
-  }, []);
-
-  // Guardar favoritos cuando cambien
-  useEffect(() => {
     if (user) {
-      if (!user.uid.startsWith('guest_') && auth.currentUser) {
-        const docRef = doc(db, 'users', auth.currentUser.uid);
-        updateDoc(docRef, { favorites }).catch(error => {
-          try { handleFirestoreError(error, OperationType.UPDATE, `users/${auth.currentUser?.uid}`); } catch(e) { console.error(e); }
-        });
-      } else if (user.uid.startsWith('guest_')) {
-        const guestDataStr = localStorage.getItem('guest_user_data');
-        if (guestDataStr) {
-          const guestData = JSON.parse(guestDataStr);
-          guestData.favorites = favorites;
-          localStorage.setItem('guest_user_data', JSON.stringify(guestData));
-        }
-      }
+      setFavorites(user.favorites || []);
+      setWatchedEpisodes(user.watchedEpisodes || []);
+    } else {
+      setFavorites([]);
+      setWatchedEpisodes([]);
     }
-  }, [favorites, user?.uid]);
-
-  // Guardar episodios vistos cuando cambien
-  useEffect(() => {
-    if (user) {
-      if (!user.uid.startsWith('guest_') && auth.currentUser) {
-        const docRef = doc(db, 'users', auth.currentUser.uid);
-        updateDoc(docRef, { watchedEpisodes }).catch(error => {
-          try { handleFirestoreError(error, OperationType.UPDATE, `users/${auth.currentUser?.uid}`); } catch(e) { console.error(e); }
-        });
-      } else if (user.uid.startsWith('guest_')) {
-        const guestDataStr = localStorage.getItem('guest_user_data');
-        if (guestDataStr) {
-          const guestData = JSON.parse(guestDataStr);
-          guestData.watchedEpisodes = watchedEpisodes;
-          localStorage.setItem('guest_user_data', JSON.stringify(guestData));
-        }
-      }
-    }
-  }, [watchedEpisodes, user?.uid]);
+    
+    setIsFetchingSeries(false);
+  }, [user]);
 
   // --- HANDLERS ---
 
-  const handleLogin = async (info: { username: string; avatar: string }) => {
-    playSound('success');
-    setLoading(true);
-    try {
-      // Login totalmente "falso" pero persistente localmente 
-      const localUid = localStorage.getItem('guest_uid') || `guest_${Math.random().toString(36).substring(2, 11)}`;
-      localStorage.setItem('guest_uid', localUid);
-      
-      const existingDataStr = localStorage.getItem('guest_user_data');
-      let existingData = existingDataStr ? JSON.parse(existingDataStr) : null;
-
-      const guestUserData = {
-        uid: localUid,
-        email: '',
-        username: info.username,
-        avatar: info.avatar,
-        favorites: existingData?.favorites || favorites, 
-        watchedEpisodes: existingData?.watchedEpisodes || watchedEpisodes,
-        isPremium: existingData?.isPremium || false
-      };
-      
-      localStorage.setItem('guest_user_data', JSON.stringify(guestUserData));
-      setUser(guestUserData);
-      setFavorites(guestUserData.favorites);
-      setWatchedEpisodes(guestUserData.watchedEpisodes);
-      
-      setIsAuthOpen(false);
-      showAlert("¡Bienvenido!", `Hola ${info.username}`, "success");
-    } catch (error) {
-      console.error("Error logging in:", error);
-      showAlert("Error", "No se pudo iniciar sesión localmente.", "error");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleLogout = async () => {
     try {
-      await signOut(auth);
-      setUser(null);
-      setFavorites([]);
-      setWatchedEpisodes([]);
+      await logout();
       setView('home');
       showAlert("¡Bye Bye!", "Has cerrado sesión correctamente. ¡Vuelve pronto!", 'info');
     } catch (error) {
@@ -1291,7 +1168,7 @@ function App() {
         updateDoc(docRef, { isPremium: true }).catch(error => {
           try { handleFirestoreError(error, OperationType.UPDATE, `users/${auth.currentUser?.uid}`); } catch(e) { console.error(e); }
         });
-        setUser({ ...user, isPremium: true });
+        updateUserData({ isPremium: true });
       }
       showAlert('¡Felicidades!', 'Ahora eres usuario Premium. Disfruta de las series antes que nadie.', 'success');
       // Clean up URL
@@ -1314,9 +1191,13 @@ function App() {
     playSound('success'); // Sonido de éxito al añadir/quitar fav
     
     if (favorites.includes(seriesId)) {
-      setFavorites(prev => prev.filter(id => id !== seriesId));
+      const nextFavs = favorites.filter(id => id !== seriesId);
+      setFavorites(nextFavs);
+      updateUserData({ favorites: nextFavs });
     } else {
-      setFavorites(prev => [...prev, seriesId]);
+      const nextFavs = [...favorites, seriesId];
+      setFavorites(nextFavs);
+      updateUserData({ favorites: nextFavs });
     }
   };
 
@@ -1352,7 +1233,9 @@ function App() {
     setTimeout(() => {
       // Marcar como visto
       if (!watchedEpisodes.includes(episode.id)) {
-        setWatchedEpisodes(prev => [...prev, episode.id]);
+        const nextWatched = [...watchedEpisodes, episode.id];
+        setWatchedEpisodes(nextWatched);
+        updateUserData({ watchedEpisodes: nextWatched });
       }
       setView('watch');
       setLoading(false);
@@ -1508,93 +1391,50 @@ function App() {
 
   const renderAuthModal = () => (
     <div 
-      className="fixed inset-0 z-[120] flex items-start justify-center p-4 pt-16 md:pt-24 bg-black/40 backdrop-blur-[2px] animate-in slide-in-from-top-10 duration-300"
+      className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-300"
       onClick={() => setIsAuthOpen(false)}
     >
       <div 
-        className="bg-white/98 backdrop-blur-2xl border-2 border-[#e30119]/20 rounded-[2.5rem] w-full max-w-sm p-6 md:p-8 shadow-[0_20px_60px_-15px_rgba(227,1,25,0.3)] relative overflow-hidden"
+        className="bg-white dark:bg-[#0c0c0c] border-2 border-pink-500/20 dark:border-pink-500/30 rounded-[2.5rem] w-full max-w-sm p-6 md:p-10 shadow-[0_20px_50px_rgba(236,72,153,0.3)] relative overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
-        
         {/* Decorative background elements */}
-        <div className="absolute -top-24 -right-24 w-48 h-48 bg-[#e30119]/10 rounded-full blur-3xl pointer-events-none"></div>
-        <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-[#e30119]/10 rounded-full blur-3xl pointer-events-none"></div>
+        <div className="absolute -top-24 -right-24 w-48 h-48 bg-pink-500/10 rounded-full blur-3xl pointer-events-none"></div>
+        <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-pink-500/10 rounded-full blur-3xl pointer-events-none"></div>
 
-        <button onClick={() => setIsAuthOpen(false)} className="absolute top-6 right-6 text-[#e30119]/60 hover:text-[#e30119] transition-colors z-20 bg-[#e30119]/5 hover:bg-[#e30119]/10 p-2 rounded-full">
+        <button 
+          onClick={() => setIsAuthOpen(false)} 
+          className="absolute top-6 right-6 text-gray-400 hover:text-pink-500 transition-colors z-20 bg-pink-500/5 hover:bg-pink-500/10 p-2 rounded-full"
+        >
           <XIcon size={20} />
         </button>
 
-        <div className="text-center mb-6 relative z-10">
-          <div className="mx-auto flex items-center justify-center mb-4 transform hover:scale-105 transition-transform duration-300">
-            <img 
-              src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhzZL1Es97pu0JBD5-MiY7rIoTOR03xFtlQ3LZgOMrbrqo3O4LWU4043kzyJdF2S74RPcHBXuZ8yDcsVCnI0kmfHoZG8VOV92nkdepVGwJ5YTu2BxWtVzd_svrZ5-CLhORLDw9Qf343uUtsexkC_24tXf3g61AkUTOrCTe2vaXw3lH4rcOcP6n7k3sz55E/s1845/REALITY%20VAULT%20LOGO%20BLANCO.png" 
-              alt="Reality Vault Logo" 
-              className="h-12 w-auto object-contain"
-              referrerPolicy="no-referrer"
-            />
-          </div>
-          <h2 className="font-bold text-2xl text-[#e30119] mb-1 drop-shadow-sm">
-            VIP ACCESS
-          </h2>
-          <p className="text-[#e30119]/70 font-medium text-xs">Crea tu identidad digital Y2K ✨</p>
+        <div className="mb-4 relative z-10 flex flex-col items-center justify-center">
+          <img 
+            src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhTV6Vzz_NAWGFiObIBsPVY7yDJwjiHFpHKUk2xip81boEcZUPHBmrbNuCymVEcLAhSVSVMysOYCoJ_-j-ULpd_wA_C9T-Kx3UbGD1v6n7T75ezjZqnMP3OsNVDgHtotFsRcL25XXDrBINbtVK06rMs0JR-QEIhNDsrIuTcS6BUxQPpt8xrT8BEhyphenhyphen26VQA/s1612/xxx.png" 
+            alt="Logo" 
+            className="h-7 w-auto object-contain"
+            referrerPolicy="no-referrer"
+          />
         </div>
 
-        <form 
-          onSubmit={(e) => { 
-            e.preventDefault(); 
-            const formData = new FormData(e.currentTarget); 
-            handleLogin({ 
-              username: formData.get('username') as string, 
-              avatar: selectedAvatar
-            }); 
-          }} 
-          className="space-y-6 relative z-10"
-        >
-          <div className="bg-[#fdc1e1] p-4 rounded-2xl border border-[#e30119]/10">
-            <label className="block text-[#e30119] font-bold mb-2 text-[9px] uppercase tracking-widest text-center">Elige tu Avatar</label>
-            <div className="flex gap-3 md:gap-4 justify-center py-2">
-              {AVATAR_OPTIONS.map((avatar, idx) => (
-                <div 
-                  key={idx} 
-                  onClick={() => setSelectedAvatar(avatar)}
-                  className={`relative w-12 h-12 rounded-full cursor-pointer transition-all duration-300 flex-shrink-0 ${
-                    selectedAvatar === avatar 
-                      ? 'scale-110 z-10' 
-                      : 'hover:scale-105 opacity-80 hover:opacity-100 z-0'
-                  }`}
-                >
-                  <div className={`w-full h-full rounded-full overflow-hidden border-2 ${
-                    selectedAvatar === avatar 
-                      ? 'border-[#e30119] ring-4 ring-[#e30119]/20 shadow-md' 
-                      : 'border-[#e30119]/20 hover:border-[#e30119]/50'
-                  }`}>
-                    <img src={avatar || undefined} alt="avatar" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-[#e30119] font-bold mb-2 text-xs uppercase tracking-widest pl-1">Nickname</label>
-            <div className="relative">
-              <UserIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-[#e30119]/40 w-5 h-5" />
-              <input 
-                name="username"
-                type="text" 
-                placeholder="Ej. GlitterQueen" 
-                className="w-full bg-white border-2 border-[#e30119]/20 rounded-2xl px-12 py-4 text-[#e30119] placeholder-[#e30119]/40 focus:outline-none focus:border-[#e30119] focus:ring-4 focus:ring-[#e30119]/20 transition-all text-lg font-medium shadow-inner"
-                required
-              />
-            </div>
-          </div>
-
-          <div className="pt-4 flex justify-center">
-            <button className="w-full py-4 text-lg font-bold uppercase tracking-wider bg-[#feb6dc] text-[#e30119] rounded-2xl hover:opacity-90 transition-all duration-300 shadow-[0_8px_20px_rgba(227,1,25,0.3)] hover:shadow-[0_12px_25px_rgba(227,1,25,0.4)] hover:-translate-y-1 active:translate-y-0">
-              Entrar al Club 💖
-            </button>
-          </div>
-        </form>
+        {authMode === 'login' ? (
+          <LoginForm 
+            onSuccess={() => {
+              setIsAuthOpen(false);
+              showAlert("¡Hola!", "Bienvenido de nuevo.", "success");
+            }}
+            onSwitchMode={() => setAuthMode('signup')}
+          />
+        ) : (
+          <RegisterForm 
+            onSuccess={() => {
+              setIsAuthOpen(false);
+              showAlert("¡Éxito!", "Tu cuenta ha sido creada.", "success");
+            }}
+            onSwitchMode={() => setAuthMode('login')}
+          />
+        )}
       </div>
     </div>
   );
@@ -1874,6 +1714,10 @@ function App() {
         {view === 'watch' && renderWatch()}
       </main>
 
+      {/* Global Loaders & Modals */}
+      {authLoading && <MagicLoader />}
+      {loading && <MagicLoader />}
+
       {/* Footer */}
       <footer className="bg-white/60 dark:bg-black/80 backdrop-blur border-t border-pink-200/50 dark:border-pink-900/50 mt-12 py-12 relative z-10 transition-colors">
         <div className="max-w-4xl mx-auto px-4 text-center">
@@ -1940,4 +1784,12 @@ function App() {
   );
 }
 
-export default App;
+function AppWrapped() {
+  return (
+    <AuthProvider>
+      <App />
+    </AuthProvider>
+  );
+}
+
+export default AppWrapped;

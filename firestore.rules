@@ -52,6 +52,7 @@ service cloud.firestore {
              data.email is string && data.email.size() <= 100 &&
              data.username is string && data.username.size() >= 1 && data.username.size() <= 30 &&
              data.avatar is string && data.avatar.size() <= 500 &&
+             (!('isPremium' in data) || (data.isPremium is bool)) &&
              (!('favorites' in data) || (data.favorites is list && data.favorites.size() <= 100)) &&
              (!('watchedEpisodes' in data) || (data.watchedEpisodes is list && data.watchedEpisodes.size() <= 500));
     }
@@ -75,7 +76,7 @@ service cloud.firestore {
                       incoming().email == existing().email &&
                       (
                         // Action: Update Profile
-                        incoming().diff(existing()).affectedKeys().hasOnly(['username', 'avatar', 'favorites', 'watchedEpisodes'])
+                        incoming().diff(existing()).affectedKeys().hasOnly(['username', 'avatar', 'favorites', 'watchedEpisodes', 'isPremium'])
                       );
                       
       allow delete: if isAdmin();
