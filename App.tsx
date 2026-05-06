@@ -1067,6 +1067,8 @@ function App() {
 
   // Search State
   const [searchQuery, setSearchQuery] = useState('');
+  const [showMobileWarning, setShowMobileWarning] = useState(false);
+  const [pendingEpisode, setPendingEpisode] = useState<Episode | null>(null);
 
   // About Description Expanded State
   const [isAboutExpanded, setIsAboutExpanded] = useState(false);
@@ -1227,6 +1229,20 @@ function App() {
       return;
     }
 
+    // Detect mobile more robustly
+    const isMobile = window.innerWidth < 1024 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    
+    console.log("Checking mobile status:", { isMobile, width: window.innerWidth });
+
+    if (isMobile) {
+      setPendingEpisode(episode);
+      setShowMobileWarning(true);
+    } else {
+      proceedToWatch(episode);
+    }
+  };
+
+  const proceedToWatch = (episode: Episode) => {
     setActiveEpisode(episode); // Immediate feedback for selection/highlight
     setLoading(true);
 
@@ -1789,6 +1805,71 @@ function App() {
         onClose={() => setIsFlashModalOpen(false)}
         swfUrl="modagranjersaSL.swf"
       />
+
+      <AnimatePresence>
+        {showMobileWarning && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+          >
+            <motion.div 
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              className="bg-white dark:bg-slate-900 rounded-3xl p-8 max-w-sm w-full shadow-2xl border-4 border-pink-500/30 text-center relative overflow-hidden"
+            >
+              {/* Background Glow */}
+              <div className="absolute -top-24 -left-24 w-48 h-48 bg-pink-500/20 rounded-full blur-3xl" />
+              <div className="absolute -bottom-24 -right-24 w-48 h-48 bg-blue-500/20 rounded-full blur-3xl" />
+              
+              <div className="relative z-10">
+                <div className="w-20 h-20 bg-pink-100 dark:bg-pink-500/20 rounded-full flex items-center justify-center mx-auto mb-6 border-2 border-pink-200 dark:border-pink-500/50 shadow-inner">
+                  <Tv size={40} className="text-pink-600 dark:text-pink-400" />
+                </div>
+                
+                <h3 className="text-2xl font-black text-slate-800 dark:text-white mb-4 font-gravity tracking-tight">
+                  ¡Aviso Importante!
+                </h3>
+                
+                <p className="text-slate-600 dark:text-slate-300 mb-8 leading-relaxed text-sm md:text-base">
+                  Por el momento estamos teniendo problemas con el reproductor en móviles. 
+                  <span className="block mt-2 font-bold text-pink-600 dark:text-pink-400">
+                    Para una mejor experiencia, te recomendamos usar la versión de escritorio.
+                  </span>
+                </p>
+                
+                <div className="flex flex-col gap-3">
+                  <Button 
+                    onClick={() => {
+                      setShowMobileWarning(false);
+                      if (pendingEpisode) {
+                        proceedToWatch(pendingEpisode);
+                        setPendingEpisode(null);
+                      }
+                    }}
+                    variant="primary"
+                    className="w-full py-4 text-xs"
+                  >
+                    CONTINUAR DE TODAS FORMAS
+                  </Button>
+                  
+                  <button 
+                    onClick={() => {
+                      setShowMobileWarning(false);
+                      setPendingEpisode(null);
+                    }}
+                    className="text-slate-400 dark:text-slate-500 text-xs font-bold uppercase tracking-widest hover:text-pink-500 transition-colors py-2"
+                  >
+                    Atrás
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
     </div>
   );
