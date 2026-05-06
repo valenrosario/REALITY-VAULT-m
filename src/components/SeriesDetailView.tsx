@@ -90,26 +90,26 @@ const SeriesDetailView = ({
           <ArrowLeft size={20} className="group-hover/back:-translate-x-1 transition-transform" /> 
         </button>
 
-        <div className="absolute inset-x-0 bottom-0 top-auto md:bottom-auto md:top-0 w-full p-4 pb-8 pt-0 md:p-12 md:pb-12 md:pt-32 lg:p-16 lg:pt-36 flex flex-col justify-end md:justify-start items-start z-20">
-          <div className="max-w-2xl space-y-3 md:space-y-6 animate-in slide-in-from-left-10 duration-700 drop-shadow-[0_10px_20px_rgba(0,0,0,0.8)]">
+        <div className="absolute inset-x-0 bottom-0 top-auto md:bottom-auto md:top-0 w-full p-4 pb-6 pt-0 md:p-12 md:pb-8 md:pt-32 lg:p-16 lg:pt-36 flex flex-col justify-end md:justify-start items-start z-20">
+          <div className="max-w-2xl space-y-2 md:space-y-3 animate-in slide-in-from-left-10 duration-700 drop-shadow-[0_10px_20px_rgba(0,0,0,0.8)]">
             
             {selectedSeries.logoUrl ? (
               <img 
                 src={selectedSeries.detailLogoUrl || selectedSeries.logoUrl || undefined} 
                 alt={selectedSeries.title} 
-                className="max-h-16 sm:max-h-24 md:max-h-32 lg:max-h-40 w-auto object-contain drop-shadow-2xl mb-0 md:mb-1" 
+                className="max-h-16 sm:max-h-24 md:max-h-32 lg:max-h-36 w-auto object-contain drop-shadow-2xl mb-1" 
               />
             ) : (
-              <h1 className="font-gravity text-3xl md:text-6xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-purple-400 drop-shadow-sm mb-0 md:mb-1">
+              <h1 className="font-gravity text-3xl md:text-6xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-purple-400 drop-shadow-sm mb-1">
                 {selectedSeries.title}
               </h1>
             )}
 
-            <h2 className="text-white font-gravity font-bold text-sm md:text-xl mb-0 md:mb-1 drop-shadow-md">
+            <h2 className="text-white font-gravity font-bold text-sm md:text-lg mb-0.5 drop-shadow-md">
               {selectedSeries.bannerText || (selectedSeries.isComingSoon ? 'Muy Pronto' : 'Todos los episodios disponibles')}
             </h2>
 
-            <div className="flex items-center flex-wrap gap-1.5 md:gap-3 text-[10px] md:text-base font-medium text-white/60">
+            <div className="flex items-center flex-wrap gap-1.5 md:gap-3 text-[10px] md:text-sm font-medium text-white/60">
               <span className="bg-white/20 backdrop-blur-md px-1.5 py-0.5 rounded text-white border border-white/10">Reality</span>
               <span className="w-1 h-1 bg-white/30 rounded-full" />
               <span>{selectedSeries.year}</span>
@@ -130,18 +130,18 @@ const SeriesDetailView = ({
               )}
             </div>
 
-            <p className="text-white/90 text-sm md:text-lg leading-relaxed line-clamp-3 md:line-clamp-4 max-w-xl drop-shadow-md py-1">
-              {selectedSeries.description}
-            </p>
-
             {selectedSeries.cast && (
-              <div className="text-xs md:text-sm text-white/70">
-                <span className="uppercase tracking-wider text-white/50 text-[10px] md:text-xs font-bold mr-2">Protagonistas:</span>
+              <div className="text-xs md:text-sm text-white/70 py-0.5">
+                <span className="uppercase tracking-wider text-white/50 text-[10px] md:text-[11px] font-bold mr-2">Protagonistas:</span>
                 {selectedSeries.cast.join(", ")}
               </div>
             )}
 
-            <div className="flex flex-col md:flex-row gap-4 md:gap-6 items-start md:items-center pt-2 w-full md:w-auto pb-4">
+            <p className="text-white/90 text-sm md:text-base leading-snug line-clamp-3 md:line-clamp-4 max-w-xl drop-shadow-md py-0.5">
+              {selectedSeries.description}
+            </p>
+
+            <div className="flex flex-col md:flex-row gap-4 md:gap-6 items-start md:items-center pt-1 w-full md:w-auto">
                <div className="flex items-center gap-4 mt-0 w-full md:w-auto">
                   {!selectedSeries.isComingSoon && (
                      <button 
@@ -273,7 +273,7 @@ const SeriesDetailView = ({
 
       {/* Mobile Only: Extra deco at bottom (Requested for The Simple Life) */}
       {selectedSeries.id === "serie-1" && (
-        <div className="md:hidden w-full overflow-hidden relative m-0 p-0 flex">
+        <div className="md:hidden w-full overflow-hidden relative m-0 p-0 flex bg-white">
            <motion.img 
              initial={{ opacity: 0 }}
              animate={{ opacity: 1 }}

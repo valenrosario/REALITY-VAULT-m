@@ -32,7 +32,6 @@ import {
 import { SERIES_DATA, APP_NAME, APP_LOGO_URL, AVATAR_OPTIONS, SOCIAL_LINKS, MARQUEE_TEXT, SOUND_EFFECTS } from './constants';
 import { User, Series, Episode } from './types';
 import SeriesDetailView from './src/components/SeriesDetailView';
-import { CountdownTimer } from './src/components/CountdownTimer';
 // import BlingCursor from './BlingCursor';
 import { db, auth, handleFirestoreError, OperationType } from './firebase';
 import { doc, getDoc, setDoc, updateDoc, onSnapshot } from 'firebase/firestore';
@@ -1041,18 +1040,6 @@ function App() {
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'signup' | 'forgot'>('login');
   const [loading, setLoading] = useState(false);
-  const [isCountdownFinished, setIsCountdownFinished] = useState(false);
-
-  // Fecha objetivo: Hoy 4 de Mayo (4/5) a las 22:00hs Argentina (UTC-3)
-  // ART es UTC-3. 22:00 ART del 4 de mayo es 01:00 UTC del 5 de mayo.
-  const targetDate = React.useMemo(() => new Date('2026-05-05T01:00:00Z'), []);
-
-  useEffect(() => {
-    // Verificar si el contador ya terminó al cargar
-    if (new Date() >= targetDate) {
-      setIsCountdownFinished(true);
-    }
-  }, [targetDate]);
 
   const [isFetchingSeries, setIsFetchingSeries] = useState(true);
   const [view, setView] = useState<'home' | 'series' | 'watch' | 'my-list'>('home');
@@ -1159,7 +1146,20 @@ function App() {
           setIsFetchingSeries(false);
         }
       } else {
-        setUser(null);
+        try {
+          const guestDataStr = localStorage.getItem('guest_user_data');
+          if (guestDataStr) {
+            const guestData = JSON.parse(guestDataStr);
+            setUser(guestData);
+            setFavorites(guestData.favorites || []);
+            setWatchedEpisodes(guestData.watchedEpisodes || []);
+          } else {
+            setUser(null);
+          }
+        } catch (e) {
+          console.error("Error parsing guest data", e);
+          setUser(null);
+        }
         setIsFetchingSeries(false);
       }
     });
@@ -1169,21 +1169,39 @@ function App() {
 
   // Guardar favoritos cuando cambien
   useEffect(() => {
-    if (user && auth.currentUser) {
-      const docRef = doc(db, 'users', auth.currentUser.uid);
-      updateDoc(docRef, { favorites }).catch(error => {
-        try { handleFirestoreError(error, OperationType.UPDATE, `users/${auth.currentUser?.uid}`); } catch(e) { console.error(e); }
-      });
+    if (user) {
+      if (!user.uid.startsWith('guest_') && auth.currentUser) {
+        const docRef = doc(db, 'users', auth.currentUser.uid);
+        updateDoc(docRef, { favorites }).catch(error => {
+          try { handleFirestoreError(error, OperationType.UPDATE, `users/${auth.currentUser?.uid}`); } catch(e) { console.error(e); }
+        });
+      } else if (user.uid.startsWith('guest_')) {
+        const guestDataStr = localStorage.getItem('guest_user_data');
+        if (guestDataStr) {
+          const guestData = JSON.parse(guestDataStr);
+          guestData.favorites = favorites;
+          localStorage.setItem('guest_user_data', JSON.stringify(guestData));
+        }
+      }
     }
   }, [favorites, user?.uid]);
 
   // Guardar episodios vistos cuando cambien
   useEffect(() => {
-    if (user && auth.currentUser) {
-      const docRef = doc(db, 'users', auth.currentUser.uid);
-      updateDoc(docRef, { watchedEpisodes }).catch(error => {
-        try { handleFirestoreError(error, OperationType.UPDATE, `users/${auth.currentUser?.uid}`); } catch(e) { console.error(e); }
-      });
+    if (user) {
+      if (!user.uid.startsWith('guest_') && auth.currentUser) {
+        const docRef = doc(db, 'users', auth.currentUser.uid);
+        updateDoc(docRef, { watchedEpisodes }).catch(error => {
+          try { handleFirestoreError(error, OperationType.UPDATE, `users/${auth.currentUser?.uid}`); } catch(e) { console.error(e); }
+        });
+      } else if (user.uid.startsWith('guest_')) {
+        const guestDataStr = localStorage.getItem('guest_user_data');
+        if (guestDataStr) {
+          const guestData = JSON.parse(guestDataStr);
+          guestData.watchedEpisodes = watchedEpisodes;
+          localStorage.setItem('guest_user_data', JSON.stringify(guestData));
+        }
+      }
     }
   }, [watchedEpisodes, user?.uid]);
 
@@ -1193,85 +1211,33 @@ function App() {
     playSound('success');
     setLoading(true);
     try {
-      let fireUser = auth.currentUser;
+      // Login totalmente "falso" pero persistente localmente 
+      const localUid = localStorage.getItem('guest_uid') || `guest_${Math.random().toString(36).substring(2, 11)}`;
+      localStorage.setItem('guest_uid', localUid);
       
-      // Intentamos login anónimo si no hay sesión para evitar el popup de Google en el iframe
-      // lo cual cumple con el requerimiento de "inicio de sesión falso" pero con persistencia.
-      if (!fireUser) {
-        try {
-          const result = await signInAnonymously(auth);
-          fireUser = result.user;
-        } catch (anonError) {
-          console.warn("Anonymous sign in failed, using local fallback", anonError);
-          // Fallback a login totalmente "falso" pero persistente localmente
-          const localUid = localStorage.getItem('guest_uid') || `guest_${Math.random().toString(36).substring(2, 11)}`;
-          localStorage.setItem('guest_uid', localUid);
-          fireUser = { uid: localUid, email: '', isAnonymous: true } as any;
-        }
-      }
+      const existingDataStr = localStorage.getItem('guest_user_data');
+      let existingData = existingDataStr ? JSON.parse(existingDataStr) : null;
+
+      const guestUserData = {
+        uid: localUid,
+        email: '',
+        username: info.username,
+        avatar: info.avatar,
+        favorites: existingData?.favorites || favorites, 
+        watchedEpisodes: existingData?.watchedEpisodes || watchedEpisodes,
+        isPremium: existingData?.isPremium || false
+      };
       
-      if (!fireUser) throw new Error("No user session found");
-
-      let finalUserData: any;
-
-      // Si es un usuario real de Firebase, intentamos Firestore
-      if (!fireUser.uid.startsWith('guest_')) {
-        const docRef = doc(db, 'users', fireUser.uid);
-        const docSnap = await getDoc(docRef);
-        
-        if (!docSnap.exists()) {
-          finalUserData = {
-            uid: fireUser.uid,
-            email: fireUser.email || '',
-            username: info.username,
-            avatar: info.avatar,
-            favorites: [],
-            watchedEpisodes: [],
-            isPremium: false,
-            createdAt: new Date().toISOString()
-          };
-          await setDoc(docRef, finalUserData);
-        } else {
-          // Upgrade existing profile with new choice if they specifically went through the modal
-          await updateDoc(docRef, {
-            username: info.username,
-            avatar: info.avatar
-          });
-          const updatedDoc = await getDoc(docRef);
-          finalUserData = updatedDoc.data();
-        }
-        
-        setUser({
-          uid: fireUser.uid,
-          email: fireUser.email || '',
-          username: finalUserData?.username || '',
-          avatar: finalUserData?.avatar || '',
-          favorites: finalUserData?.favorites || [],
-          watchedEpisodes: finalUserData?.watchedEpisodes || [],
-          isPremium: finalUserData?.isPremium || false
-        });
-      } else {
-        // Para usuarios "guest" (cuando Auth falla), guardamos en localStorage
-        finalUserData = {
-          uid: fireUser.uid,
-          email: '',
-          username: info.username,
-          avatar: info.avatar,
-          favorites: favorites, // Usamos el estado actual si ya existe
-          watchedEpisodes: watchedEpisodes,
-          isPremium: false
-        };
-        localStorage.setItem('guest_user_data', JSON.stringify(finalUserData));
-        setUser(finalUserData);
-      }
+      localStorage.setItem('guest_user_data', JSON.stringify(guestUserData));
+      setUser(guestUserData);
+      setFavorites(guestUserData.favorites);
+      setWatchedEpisodes(guestUserData.watchedEpisodes);
+      
       setIsAuthOpen(false);
-      
-      setFavorites(finalUserData?.favorites || []);
-      setWatchedEpisodes(finalUserData?.watchedEpisodes || []);
       showAlert("¡Bienvenido!", `Hola ${info.username}`, "success");
     } catch (error) {
       console.error("Error logging in:", error);
-      showAlert("Error", "No se pudo iniciar sesión. " + (error instanceof Error ? error.message : ""), "error");
+      showAlert("Error", "No se pudo iniciar sesión localmente.", "error");
     } finally {
       setLoading(false);
     }
@@ -1542,7 +1508,7 @@ function App() {
 
   const renderAuthModal = () => (
     <div 
-      className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/40 backdrop-blur-[2px] animate-in fade-in duration-300"
+      className="fixed inset-0 z-[120] flex items-start justify-center p-4 pt-16 md:pt-24 bg-black/40 backdrop-blur-[2px] animate-in slide-in-from-top-10 duration-300"
       onClick={() => setIsAuthOpen(false)}
     >
       <div 
@@ -1651,13 +1617,6 @@ function App() {
 
   return (
     <div className="min-h-screen bg-white dark:bg-[#050505] text-gray-800 dark:text-gray-100 font-sans selection:bg-pink-300 selection:text-pink-900 flex flex-col transition-colors">
-      
-      {!isCountdownFinished && (
-        <CountdownTimer 
-          targetDate={targetDate} 
-          onFinish={() => setIsCountdownFinished(true)} 
-        />
-      )}
       
       {/* Loader Global */}
       {loading && <MagicLoader />}
@@ -1826,28 +1785,7 @@ function App() {
                 </div>
               ) : (
                 <button 
-                  onClick={async () => {
-                    setLoading(true);
-                    try {
-                      const provider = new GoogleAuthProvider();
-                      const result = await signInWithPopup(auth, provider);
-                      const fireUser = result.user;
-                      
-                      // Check profile
-                      const docRef = doc(db, 'users', fireUser.uid);
-                      const docSnap = await getDoc(docRef);
-                      
-                      if (!docSnap.exists()) {
-                        setIsAuthOpen(true);
-                      }
-                    } catch (error: any) {
-                      if (error.code !== 'auth/popup-closed-by-user') {
-                        showAlert('Error', 'No se pudo conectar con Google', 'error');
-                      }
-                    } finally {
-                      setLoading(false);
-                    }
-                  }}
+                  onClick={() => setIsAuthOpen(true)}
                   className={`flex items-center gap-2 font-black text-[10px] uppercase tracking-[0.2em] px-5 py-2 md:px-6 md:py-2.5 rounded-full transition-all hover:scale-105 active:scale-95 ${!isNavSolid ? 'bg-white text-black hover:bg-pink-50' : 'bg-pink-500 text-white shadow-lg'}`}
                 >
                   Entrar
