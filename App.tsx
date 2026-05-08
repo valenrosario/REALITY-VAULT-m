@@ -591,6 +591,33 @@ const HomeView = ({
   ].filter(Boolean);
   const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
 
+  // Swipe states
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
+  const minSwipeDistance = 50;
+
+  const onTouchStartBanner = (e: React.TouchEvent) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const onTouchMoveBanner = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const onTouchEndBanner = () => {
+    if (!touchStart || !touchEnd) return;
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > minSwipeDistance;
+    const isRightSwipe = distance < -minSwipeDistance;
+    if (isLeftSwipe) {
+      setCurrentBannerIndex(prev => (prev + 1) % banners.length);
+    }
+    if (isRightSwipe) {
+      setCurrentBannerIndex(prev => (prev - 1 + banners.length) % banners.length);
+    }
+  };
+
   // Auto-avance del carrusel
   useEffect(() => {
     if (banners.length === 0) return;
@@ -669,6 +696,9 @@ const HomeView = ({
       {/* Hero Carousel Dinámico */}
       <div 
         onClick={() => onSeriesClick(SERIES_DATA.find(s => s.id === currentSeries.id) || currentSeries)}
+        onTouchStart={onTouchStartBanner}
+        onTouchMove={onTouchMoveBanner}
+        onTouchEnd={onTouchEndBanner}
         className="relative w-full overflow-hidden mx-auto max-w-none group transition-all duration-300 cursor-pointer bg-black"
         style={{ maxWidth: '2880px' }}
       >
@@ -1330,10 +1360,10 @@ function App() {
           className={`w-full bg-black relative z-[60] transition-all duration-500 overflow-hidden ${
             isFullscreen 
               ? 'fixed inset-0 h-[100dvh] w-screen z-[9999] rounded-none border-none m-0 p-0' 
-              : 'mb-4 md:mb-6 md:rounded-3xl shadow-lg md:shadow-2xl md:border-4 border-pink-200/50 dark:border-pink-800/50 mx-auto max-w-md md:max-w-5xl'
+              : 'mb-4 md:mb-6 md:rounded-3xl shadow-lg md:shadow-2xl md:border-4 border-pink-200/50 dark:border-pink-800/50 w-full max-w-[100vw] mx-auto md:max-w-5xl'
           }`}
         >
-          <div className={`relative bg-black w-full shadow-inner ${isFullscreen ? 'h-full flex items-center justify-center' : 'pt-[150%] md:pt-[56.25%]'}`}>
+          <div className={`relative bg-black w-full shadow-inner ${isFullscreen ? 'h-full flex items-center justify-center' : 'pt-[56.25%]'}`}>
             <iframe 
               className="absolute top-0 left-0 w-full h-full border-0"
               src={processedVideoUrl || undefined} 
