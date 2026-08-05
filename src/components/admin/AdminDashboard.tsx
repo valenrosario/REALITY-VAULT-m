@@ -82,9 +82,11 @@ export const AdminProtectedRoute = ({ children }: { children: React.ReactNode })
             <div className="inline-flex p-4 bg-gradient-to-br from-pink-500/10 to-purple-500/10 rounded-2xl text-pink-500 mb-4 border border-pink-200 shadow-sm">
               <Lock size={32} />
             </div>
-            <h1 className="text-3xl font-gravity text-transparent bg-clip-text bg-gradient-to-r from-pink-500 via-purple-500 to-cyan-500 tracking-widest uppercase mb-2">
-              REALITY VAULT
-            </h1>
+            <img 
+              src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgLaRnLFdLrePsKdNQ1RUssbDupY8Vtjwnr8dEOmvRkpltkC0tSv-OEST91VTmX_O6wbVfdlxptgjszgZYli20-P01OE-faxg-EMP4SGdbMQMMEYBSut7D6MT7eizTzfYIm8mZn8uCyth31mXnp7YA7imudZK820qOopBYiJuFKMexY0P49eKeM71uWVZk/s1612/REALITY%20VAULT%20LOGO-Recuperado-Recuperado.png" 
+              alt="Reality Vault" 
+              className="w-48 object-contain mx-auto mb-2"
+            />
             <p className="text-xs text-slate-500 tracking-wider font-semibold uppercase">
               Panel Administrador
             </p>
@@ -112,7 +114,7 @@ export const AdminProtectedRoute = ({ children }: { children: React.ReactNode })
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Ingresa la contraseña..."
-                  className="w-full bg-white/80 border border-slate-200 rounded-2xl px-4 py-3.5 text-slate-900 text-sm focus:outline-none focus:border-pink-500 focus:ring-4 focus:ring-pink-500/10 transition-all shadow-sm"
+                  className="w-full bg-white/80 border border-slate-200 rounded-2xl px-4 py-3.5 text-slate-900 text-sm focus:outline-none focus:border-[#00dbef] focus:ring-4 focus:ring-[#00dbef]/10 transition-all shadow-sm"
                   required
                   autoFocus
                 />
@@ -121,7 +123,7 @@ export const AdminProtectedRoute = ({ children }: { children: React.ReactNode })
 
             <button 
               type="submit" 
-              className="w-full py-4 bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 rounded-2xl text-white font-bold text-sm tracking-widest uppercase transition-all shadow-[0_8px_20px_rgba(236,72,153,0.3)] active:scale-95"
+              className="w-full py-4 bg-[#5500bd] hover:bg-[#5500bd]/90 rounded-2xl text-white font-bold text-sm tracking-widest uppercase transition-all shadow-[0_8px_20px_rgba(85,0,189,0.3)] active:scale-95"
             >
               Ingresar al Panel
             </button>
@@ -148,8 +150,9 @@ export const AdminProtectedRoute = ({ children }: { children: React.ReactNode })
 // 2. LAYOUT BASE DEL PANEL (Sidebar + Content)
 // ==========================================
 export const AdminDashboard = () => {
-  const [activeTab, setActiveTab] = useState<'home' | 'series' | 'settings'>('home');
+  const [activeTab, setActiveTab] = useState<'home' | 'series' | 'banners' | 'settings'>('home');
   const [series, setSeries] = useState<Series[]>([]);
+  const [banners, setBanners] = useState<any[]>([]);
   const [config, setConfig] = useState<AppConfig | null>(null);
   const [totalUsers, setTotalUsers] = useState<number>(0);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -168,6 +171,12 @@ export const AdminDashboard = () => {
       setIsLoading(false);
     });
 
+    const unsubscribeBanners = onSnapshot(collection(db, 'heroBanners'), (snapshot) => {
+      const bannerData = snapshot.docs.map(doc => ({ id: doc.id, ...(doc.data() as any) }));
+      bannerData.sort((a: any, b: any) => (a.order ?? 0) - (b.order ?? 0));
+      setBanners(bannerData);
+    });
+
     // Escuchar configuración global
     const unsubscribeConfig = onSnapshot(doc(db, 'appConfig', 'global'), (docSnap) => {
       if (docSnap.exists()) {
@@ -184,6 +193,7 @@ export const AdminDashboard = () => {
 
     return () => {
       unsubscribeSeries();
+      unsubscribeBanners();
       unsubscribeConfig();
     };
   }, []);
@@ -214,9 +224,11 @@ export const AdminDashboard = () => {
       {/* Sidebar */}
       <aside className="w-64 bg-white/70 backdrop-blur-xl border-r border-slate-200 flex flex-col p-6 shadow-[4px_0_24px_rgba(0,0,0,0.02)] relative z-20">
         <div className="mb-10 text-center">
-          <h2 className="font-gravity text-2xl text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-cyan-500 font-bold tracking-widest drop-shadow-sm">
-            REALITY VAULT
-          </h2>
+          <img 
+            src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgLaRnLFdLrePsKdNQ1RUssbDupY8Vtjwnr8dEOmvRkpltkC0tSv-OEST91VTmX_O6wbVfdlxptgjszgZYli20-P01OE-faxg-EMP4SGdbMQMMEYBSut7D6MT7eizTzfYIm8mZn8uCyth31mXnp7YA7imudZK820qOopBYiJuFKMexY0P49eKeM71uWVZk/s1612/REALITY%20VAULT%20LOGO-Recuperado-Recuperado.png" 
+            alt="Reality Vault" 
+            className="h-10 object-contain mx-auto mb-2"
+          />
           <p className="text-[10px] text-purple-500 tracking-wider font-semibold uppercase mt-1">
             Admin Control Center
           </p>
@@ -234,6 +246,12 @@ export const AdminDashboard = () => {
             icon={<Film size={20} />} 
             label="Gestor de Series" 
             onClick={() => setActiveTab('series')} 
+          />
+          <SidebarButton 
+            active={activeTab === 'banners'} 
+            icon={<ImageIcon size={20} />} 
+            label="Gestor de Banners" 
+            onClick={() => setActiveTab('banners')} 
           />
           <SidebarButton 
             active={activeTab === 'settings'} 
@@ -339,6 +357,17 @@ export const AdminDashboard = () => {
               </motion.div>
             )}
 
+            {activeTab === 'banners' && (
+              <motion.div 
+                key="banners" 
+                initial={{ opacity: 0, y: 15 }} 
+                animate={{ opacity: 1, y: 0 }} 
+                exit={{ opacity: 0, y: -15 }}
+              >
+                <BannersManager banners={banners} />
+              </motion.div>
+            )}
+
             {activeTab === 'settings' && config && (
               <motion.div 
                 key="settings" 
@@ -361,7 +390,7 @@ const SidebarButton = ({ active, icon, label, onClick }: { active: boolean, icon
     onClick={onClick}
     className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-all font-bold text-sm ${
       active 
-        ? 'bg-white text-pink-600 shadow-sm border border-pink-100' 
+        ? 'bg-[#ffb9ff]/20 text-[#5500bd] shadow-sm border border-[#ffb9ff]/30' 
         : 'text-slate-500 hover:text-slate-900 hover:bg-white/50 border border-transparent'
     }`}
   >
@@ -460,7 +489,7 @@ const SeriesManager = ({ series }: { series: Series[] }) => {
 
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={items.map(i => i.id)} strategy={verticalListSortingStrategy}>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
             {items.map(s => (
               <SortableSeriesCard key={s.id} series={s} onClick={() => setEditingSeries(s)} />
             ))}
@@ -482,30 +511,294 @@ const SortableSeriesCard: React.FC<{ series: Series, onClick: () => void }> = ({
   return (
     <div 
       ref={setNodeRef} style={style}
-      className="bg-white/80 backdrop-blur-xl border border-slate-200 rounded-3xl overflow-hidden cursor-pointer hover:border-cyan-400 hover:shadow-lg transition-all hover:-translate-y-1 group relative shadow-sm"
+      className="bg-white/80 backdrop-blur-xl border border-slate-200 rounded-2xl overflow-hidden cursor-pointer hover:border-[#00dbef] hover:shadow-[0_0_15px_rgba(0,219,239,0.3)] transition-all hover:-translate-y-1 group relative shadow-sm"
     >
       <div 
         {...attributes} {...listeners}
-        className="absolute top-3 left-3 z-20 bg-white/90 backdrop-blur-md p-2 rounded-xl cursor-grab hover:bg-cyan-50 transition-colors border border-slate-200 shadow-sm"
+        className="absolute top-2 left-2 z-20 bg-white/90 backdrop-blur-md p-1.5 rounded-lg cursor-grab hover:bg-[#00dbef]/10 transition-colors border border-slate-200 shadow-sm"
         title="Arrastrar para reordenar"
       >
-        <GripVertical size={18} className="text-slate-700" />
+        <GripVertical size={16} className="text-slate-700" />
       </div>
 
       <div className="aspect-[2/3] relative" onClick={onClick}>
         <img src={series.coverImage} alt={series.title} className="w-full h-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-slate-900/10 to-transparent opacity-80 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-          <span className="font-bold bg-white text-pink-600 text-xs px-4 py-2 rounded-xl shadow-lg opacity-0 group-hover:opacity-100 transition-all transform group-hover:scale-105">
+          <span className="font-bold bg-[#fe5802] text-white text-xs px-3 py-1.5 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-all transform group-hover:scale-105">
             Editar Serie
           </span>
         </div>
       </div>
 
-      <div className="p-4" onClick={onClick}>
-        <h3 className="font-bold text-base truncate text-slate-900">{series.title}</h3>
-        <span className={`inline-block text-[10px] uppercase font-bold px-2.5 py-0.5 rounded-full mt-1.5 ${series.isComingSoon ? 'bg-cyan-100 text-cyan-700 border border-cyan-200' : 'bg-pink-100 text-pink-700 border border-pink-200'}`}>
+      <div className="p-3" onClick={onClick}>
+        <h3 className="font-bold text-sm truncate text-slate-900">{series.title}</h3>
+        <span className={`inline-block text-[9px] uppercase font-bold px-2 py-0.5 rounded-md mt-1 ${series.isComingSoon ? 'bg-[#00dbef]/20 text-[#0442d9] border border-[#00dbef]/30' : 'bg-[#ffb9ff]/30 text-[#f10813] border border-[#ffb9ff]/50'}`}>
           {series.isComingSoon ? 'Muy Pronto' : 'Publicada'}
         </span>
+      </div>
+    </div>
+  );
+};
+
+// ==========================================
+// BANNERS MANAGER
+// ==========================================
+const BannersManager = ({ banners }: { banners: any[] }) => {
+  const [editingBanner, setEditingBanner] = useState<any | null>(null);
+  const [items, setItems] = useState<any[]>(banners);
+
+  useEffect(() => {
+    setItems(banners);
+  }, [banners]);
+
+  useEffect(() => {
+    const initializeBanners = async () => {
+      try {
+        const snap = await getDocs(collection(db, 'heroBanners'));
+        if (snap.empty) {
+          const batch = writeBatch(db);
+          const seriesToMigrate = SERIES_DATA.slice(0, 4);
+          
+          seriesToMigrate.forEach((serie, index) => {
+            const newId = `banner-migrated-${serie.id}`;
+            const newBanner = {
+              id: newId,
+              order: index,
+              desktopImage: serie.bannerImage || serie.coverImage || 'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=1200&auto=format&fit=crop&q=80',
+              mobileImage: serie.mobileBannerImage || serie.coverImage || 'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=600&auto=format&fit=crop&q=80',
+              logoUrl: serie.logoUrl || '',
+              logoSize: 'medium',
+              title: serie.title,
+              subtitle: serie.bannerText || (serie.isComingSoon ? 'Muy Pronto' : 'Todos los episodios disponibles'),
+              badge: serie.contentRating || 'TV-14',
+              isVisible: true
+            };
+            batch.set(doc(db, 'heroBanners', newId), newBanner);
+          });
+          
+          await batch.commit();
+        }
+      } catch (err) {
+        console.error('Error initializing banners:', err);
+      }
+    };
+    
+    initializeBanners();
+  }, []);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      const oldIndex = items.findIndex(item => item.id === active.id);
+      const newIndex = items.findIndex(item => item.id === over.id);
+      const newItems = arrayMove(items, oldIndex, newIndex);
+      setItems(newItems);
+      
+      const batch = writeBatch(db);
+      newItems.forEach((item: any, index: number) => {
+        batch.update(doc(db, 'heroBanners', item.id), { order: index });
+      });
+      try {
+        await batch.commit();
+      } catch (error) {
+        console.error("Error reordenando banners:", error);
+      }
+    }
+  };
+
+  const createNewBanner = async () => {
+    const newId = `banner-${Date.now()}`;
+    const newBanner = {
+      id: newId,
+      order: items.length,
+      desktopImage: 'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=1200&auto=format&fit=crop&q=80',
+      mobileImage: 'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=600&auto=format&fit=crop&q=80',
+      title: 'Nuevo Banner',
+      logoSize: 'medium',
+      isVisible: true
+    };
+    try {
+      await setDoc(doc(db, 'heroBanners', newId), newBanner);
+      setEditingBanner(newBanner);
+    } catch (err) {
+      console.error(err);
+      alert('Error creando nuevo banner');
+    }
+  };
+
+  if (editingBanner) {
+    return <BannerEditor banner={editingBanner} onBack={() => setEditingBanner(null)} />;
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-4xl font-gravity text-slate-900">Gestor de Banners</h1>
+          <p className="text-slate-500 text-xs mt-1">Arrastra para reordenar los banners del carrusel principal.</p>
+        </div>
+        <div className="flex gap-3">
+          <button 
+            onClick={createNewBanner}
+            className="bg-gradient-to-r from-cyan-500 via-pink-500 to-purple-500 text-white hover:opacity-90 px-5 py-2.5 rounded-2xl flex items-center gap-2 font-bold text-sm transition-all shadow-sm"
+          >
+            <Plus size={18} /> Nuevo Banner
+          </button>
+        </div>
+      </div>
+
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <SortableContext items={items.map(i => i.id)} strategy={verticalListSortingStrategy}>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {items.map(b => (
+              <SortableBannerCard key={b.id} banner={b} onClick={() => setEditingBanner(b)} />
+            ))}
+          </div>
+        </SortableContext>
+      </DndContext>
+    </div>
+  );
+};
+
+const SortableBannerCard: React.FC<{ banner: any, onClick: () => void }> = ({ banner, onClick }) => {
+  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: banner.id });
+  const style = { transform: CSS.Transform.toString(transform), transition };
+  const isHidden = banner.isVisible === false;
+  
+  return (
+    <div 
+      ref={setNodeRef} style={style}
+      className={`bg-white/80 backdrop-blur-xl border border-slate-200 rounded-2xl overflow-hidden cursor-pointer hover:border-[#0281c8] transition-all hover:-translate-y-1 group relative shadow-sm ${isHidden ? 'opacity-60 grayscale' : ''}`}
+    >
+      <div 
+        {...attributes} {...listeners}
+        className="absolute top-2 left-2 z-20 bg-white/90 backdrop-blur-md p-1.5 rounded-lg cursor-grab hover:bg-[#0281c8]/10 transition-colors border border-slate-200 shadow-sm"
+      >
+        <GripVertical size={16} className="text-slate-700" />
+      </div>
+      
+      {isHidden && (
+        <div className="absolute top-2 right-2 z-20 bg-slate-800 text-white text-[10px] font-bold px-2 py-1 rounded-md">
+          Oculto
+        </div>
+      )}
+
+      <div className="aspect-video relative" onClick={onClick}>
+        <img src={banner.desktopImage} alt={banner.title} className="w-full h-full object-cover" />
+        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+          <span className="font-bold bg-[#fe5802] text-white text-xs px-3 py-1.5 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-all transform group-hover:scale-105">
+            Editar Banner
+          </span>
+        </div>
+      </div>
+      <div className="p-3 bg-white" onClick={onClick}>
+        <h3 className="font-bold text-sm truncate text-slate-900">{banner.title || 'Sin Título'}</h3>
+      </div>
+    </div>
+  );
+};
+
+const BannerEditor = ({ banner, onBack }: { banner: any, onBack: () => void }) => {
+  const [formData, setFormData] = useState<any>({ isVisible: true, ...banner });
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      await setDoc(doc(db, 'heroBanners', formData.id), formData);
+      alert('¡Banner guardado!');
+    } catch (e) {
+      console.error(e);
+      alert('Error guardando banner');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (confirm(`¿Eliminar banner?`)) {
+      try {
+        await deleteDoc(doc(db, 'heroBanners', formData.id));
+        onBack();
+      } catch (err) {
+        console.error(err);
+      }
+    }
+  };
+
+  return (
+    <div className="pb-24 space-y-8">
+      <div className="flex justify-between items-center bg-white/70 backdrop-blur-xl border border-slate-200 p-4 rounded-3xl sticky top-0 z-40 shadow-sm">
+        <button onClick={onBack} className="text-slate-500 hover:text-slate-900 flex items-center gap-2 font-bold text-sm px-3 py-1.5 rounded-xl hover:bg-slate-100 transition-colors">
+          ← Volver a Banners
+        </button>
+        <div className="flex gap-3">
+          <button 
+            onClick={() => setFormData({...formData, isVisible: !formData.isVisible})} 
+            className={`px-4 py-2 rounded-2xl flex items-center gap-2 font-bold text-xs transition-all border ${formData.isVisible ? 'bg-slate-100 border-slate-200 text-slate-600' : 'bg-slate-800 text-white border-slate-800'}`}
+          >
+            {formData.isVisible ? 'Ocultar' : 'Mostrar'}
+          </button>
+          <button onClick={handleDelete} className="bg-[#f6042e]/10 hover:bg-[#f6042e]/20 text-[#f6042e] px-4 py-2 rounded-2xl flex items-center gap-2 font-bold text-xs transition-all border border-[#f6042e]/20">
+            <Trash2 size={16} /> Eliminar
+          </button>
+          <button onClick={handleSave} disabled={isSaving} className="bg-[#5500bd] hover:bg-[#5500bd]/90 text-white font-bold px-6 py-2 rounded-xl shadow-lg transition-all active:scale-95 flex items-center gap-2 text-xs disabled:opacity-50">
+            {isSaving ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
+            <span>Guardar</span>
+          </button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="bg-white/70 backdrop-blur-xl border border-slate-200 p-6 rounded-3xl space-y-4 shadow-sm">
+          <h3 className="text-xl font-gravity text-[#0281c8] mb-2">Imágenes</h3>
+          <ImageUploader label="Imagen Desktop" url={formData.desktopImage} onUpload={(url) => setFormData({...formData, desktopImage: url})} />
+          <ImageUploader label="Imagen Mobile" url={formData.mobileImage} onUpload={(url) => setFormData({...formData, mobileImage: url})} />
+          <ImageUploader label="Logo (Opcional)" url={formData.logoUrl || ''} onUpload={(url) => setFormData({...formData, logoUrl: url})} />
+        </div>
+
+        <div className="bg-white/70 backdrop-blur-xl border border-slate-200 p-6 rounded-3xl space-y-4 shadow-sm">
+          <h3 className="text-xl font-gravity text-[#0281c8] mb-2">Textos y Logo</h3>
+          
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Tamaño del Logo</label>
+            <select 
+              value={formData.logoSize || 'medium'} 
+              onChange={e => setFormData({...formData, logoSize: e.target.value})}
+              className="w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 focus:outline-none focus:border-[#5500bd] text-sm text-slate-900"
+            >
+              <option value="small">Pequeño</option>
+              <option value="medium">Mediano</option>
+              <option value="large">Grande</option>
+              <option value="xlarge">Extra Grande</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Título</label>
+            <input type="text" value={formData.title || ''} onChange={e => setFormData({...formData, title: e.target.value})} className="w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 focus:outline-none focus:border-[#5500bd] text-sm text-slate-900" />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Subtítulo</label>
+            <input type="text" value={formData.subtitle || ''} onChange={e => setFormData({...formData, subtitle: e.target.value})} className="w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 focus:outline-none focus:border-[#5500bd] text-sm text-slate-900" />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Badge (ej: TV-MA)</label>
+            <input type="text" value={formData.badge || ''} onChange={e => setFormData({...formData, badge: e.target.value})} className="w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 focus:outline-none focus:border-[#5500bd] text-sm text-slate-900" />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Texto Customizado (Pie)</label>
+            <textarea value={formData.customText || ''} onChange={e => setFormData({...formData, customText: e.target.value})} className="w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 focus:outline-none focus:border-[#5500bd] text-sm text-slate-900 resize-none h-20" />
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -770,6 +1063,66 @@ const SeriesEditor = ({ serie, onBack }: { serie: Series, onBack: () => void }) 
                   onChange={e => setFormData({...formData, themeColor: e.target.value})} 
                   placeholder="#ec4899"
                   className="flex-1 bg-white border border-slate-200 rounded-2xl px-4 py-3 focus:outline-none focus:border-pink-500 text-sm uppercase text-slate-900" 
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Galería de Imágenes */}
+          <div className="bg-white/70 backdrop-blur-xl border border-slate-200 p-6 rounded-3xl space-y-4 shadow-sm">
+            <h3 className="text-xl font-gravity text-[#0281c8] mb-2">Galería de Imágenes</h3>
+            <div className="grid grid-cols-2 gap-4">
+              {(formData.gallery || []).map((img, idx) => (
+                <div key={img.id} className="relative group rounded-xl overflow-hidden border border-slate-200">
+                  <div className="aspect-[4/3] bg-slate-100">
+                    <img src={img.url} alt="Gallery item" className="w-full h-full object-cover" />
+                  </div>
+                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-between p-2">
+                    <button 
+                      onClick={() => {
+                        const newGallery = [...(formData.gallery || [])];
+                        newGallery.splice(idx, 1);
+                        setFormData({...formData, gallery: newGallery});
+                      }}
+                      className="self-end bg-red-500 text-white p-1.5 rounded-lg hover:bg-red-600 transition-colors"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                    <input 
+                      type="text" 
+                      value={img.category}
+                      onChange={(e) => {
+                        const newGallery = [...(formData.gallery || [])];
+                        newGallery[idx].category = e.target.value;
+                        setFormData({...formData, gallery: newGallery});
+                      }}
+                      placeholder="Tag (ej. Promo)"
+                      className="w-full bg-white/90 text-slate-900 text-[10px] font-bold px-2 py-1 rounded focus:outline-none"
+                    />
+                  </div>
+                </div>
+              ))}
+              <div className="aspect-[4/3] rounded-xl border-2 border-dashed border-slate-300 flex flex-col items-center justify-center bg-slate-50 relative group hover:border-[#136bcf] transition-colors cursor-pointer">
+                <Upload size={24} className="text-slate-400 group-hover:text-[#136bcf] mb-2" />
+                <span className="text-xs font-bold text-slate-500 group-hover:text-[#136bcf]">Añadir a Galería</span>
+                <input 
+                  type="file" 
+                  accept="image/*"
+                  className="absolute inset-0 opacity-0 cursor-pointer"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    try {
+                      const url = await uploadImageToStorage(file, 'gallery');
+                      setFormData({
+                        ...formData, 
+                        gallery: [...(formData.gallery || []), { id: Date.now().toString(), url, category: 'General' }]
+                      });
+                    } catch(err) {
+                      console.error(err);
+                      alert('Error subiendo imagen de galería');
+                    }
+                  }}
                 />
               </div>
             </div>

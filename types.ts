@@ -47,6 +47,21 @@ export interface Series {
   audioLanguages?: string[];
   subtitleLanguages?: string[];
   copyright?: string;
+  gallery?: { id: string; url: string; category: string; }[];
+}
+
+export interface HeroBanner {
+  id: string;
+  order?: number;
+  desktopImage: string;
+  mobileImage: string;
+  logoUrl?: string;
+  logoSize?: 'small' | 'medium' | 'large' | 'xlarge';
+  title?: string;
+  subtitle?: string;
+  badge?: string;
+  customText?: string;
+  isVisible?: boolean;
 }
 
 export interface User {

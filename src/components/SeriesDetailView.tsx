@@ -271,6 +271,32 @@ const SeriesDetailView = ({
         </div>
       </div>
 
+      {/* Gallery Section */}
+      {selectedSeries.gallery && selectedSeries.gallery.length > 0 && (
+        <div className="max-w-7xl mx-auto px-4 md:px-8 pb-20 relative z-30">
+          <div className="absolute top-0 left-4 right-4 md:left-8 md:right-8 h-px bg-gradient-to-r from-transparent via-pink-200 dark:via-white/20 to-transparent"></div>
+          <h3 className="text-2xl md:text-3xl font-gravity font-bold text-white mb-8 pt-8 md:pt-12 flex items-center gap-2">
+            <Sparkles size={24} className="text-[#00dbef]" /> Galería
+          </h3>
+          <div className="columns-1 sm:columns-2 md:columns-3 gap-4 space-y-4">
+            {selectedSeries.gallery.map((img) => (
+              <div 
+                key={img.id} 
+                className="relative group rounded-2xl overflow-hidden break-inside-avoid border border-white/10 cursor-pointer shadow-2xl hover:shadow-[0_0_20px_rgba(0,219,239,0.3)] transition-all duration-300"
+                onClick={() => window.open(img.url, '_blank')}
+              >
+                <img src={img.url} alt={img.category} className="w-full h-auto object-cover transform group-hover:scale-105 transition-transform duration-500" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4">
+                  <span className="bg-black/50 backdrop-blur-md text-white text-xs font-bold px-3 py-1 rounded-full border border-white/20 shadow-lg">
+                    {img.category}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Mobile Only: Extra deco at bottom (Requested for The Simple Life) */}
       {selectedSeries.id === "serie-1" && (
         <div className="md:hidden w-full overflow-hidden relative m-0 p-0 flex bg-white">

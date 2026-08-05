@@ -4,6 +4,8 @@ import { motion, AnimatePresence } from 'motion/react';
 import { SOUND_EFFECTS } from '../../constants';
 import { Series } from '../../types';
 import SeriesCard from './SeriesCard';
+import { collection, onSnapshot } from 'firebase/firestore';
+import { db } from '../../firebase';
 
 import { playSound } from '../utils/sound';
 interface HomeViewProps {
@@ -25,6 +27,27 @@ const HomeView = ({
   searchQuery,
   onGifClick
 }: HomeViewProps) => {
+  const [heroBanners, setHeroBanners] = useState<any[]>([]);
+  const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
+
+  useEffect(() => {
+    const unsubscribe = onSnapshot(collection(db, 'heroBanners'), (snapshot) => {
+      const bannerData = snapshot.docs.map(doc => ({ id: doc.id, ...(doc.data() as any) }));
+      const visibleBanners = bannerData.filter(b => b.isVisible !== false);
+      visibleBanners.sort((a: any, b: any) => (a.order ?? 0) - (b.order ?? 0));
+      setHeroBanners(visibleBanners);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (heroBanners.length <= 1) return;
+    const interval = setInterval(() => {
+      setCurrentBannerIndex(prev => (prev + 1) % heroBanners.length);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [heroBanners]);
+
   const favoriteSeries = seriesData.filter(s => favorites.includes(s.id) && s.id !== "serie-charm-school");
   
   const currentSeries = seriesData[0];
@@ -125,98 +148,205 @@ const HomeView = ({
     );
   }
 
-  return (
-    <div className="pb-12 fade-in">
-      <div 
-        onClick={() => onSeriesClick(currentSeries)}
-        className="w-full relative group cursor-pointer bg-black"
-        style={{ maxWidth: '2880px', margin: '0 auto' }}
-      >
-        {/* Desktop Version */}
-        <div className="hidden md:block w-full relative">
-          <picture className="w-full block">
-            <source media="(max-width: 768px)" srcSet={currentSeries.mobileBannerImage || currentSeries.coverImage || undefined} />
+  const renderHeroBanner = () => {
+    if (heroBanners.length === 0) {
+      return (
+        <div 
+          onClick={() => onSeriesClick(currentSeries)}
+          className="w-full relative group cursor-pointer bg-black"
+          style={{ maxWidth: '2880px', margin: '0 auto' }}
+        >
+          {/* Desktop Version */}
+          <div className="hidden md:block w-full relative">
+            <picture className="w-full block">
+              <source media="(max-width: 768px)" srcSet={currentSeries.mobileBannerImage || currentSeries.coverImage || undefined} />
+              <img 
+                src={currentSeries.bannerImage || currentSeries.coverImage || undefined} 
+                alt={currentSeries.title} 
+                className="w-full object-contain object-center block"
+              />
+            </picture>
+            
             <img 
-              src={currentSeries.bannerImage || currentSeries.coverImage || undefined} 
-              alt={currentSeries.title} 
-              className="w-full object-contain object-center block"
+              src="/src/assets/images/regenerated_image_1777741269617.png" 
+              className="absolute inset-0 w-full h-full object-cover z-[5] pointer-events-none" 
+              alt="Banner Overlay" 
+              referrerPolicy="no-referrer"
             />
-          </picture>
-          
-          <img 
-            src="/src/assets/images/regenerated_image_1777741269617.png" 
-            className="absolute inset-0 w-full h-full object-cover z-[5] pointer-events-none" 
-            alt="Banner Overlay" 
-            referrerPolicy="no-referrer"
-          />
-          
-          <div className="absolute inset-x-0 bottom-0 h-64 bg-gradient-to-t from-black/80 via-black/20 to-transparent z-[6]" />
-          <div className="absolute inset-0 flex flex-col justify-start items-start p-16 pt-20 lg:pt-24 z-10">
-            <div className="max-w-2xl relative drop-shadow-[0_10px_20px_rgba(0,0,0,0.8)]">
-              {currentSeries.logoUrl ? (
-                <img src={currentSeries.logoUrl || undefined} alt={currentSeries.title} className="h-40 lg:h-52 w-auto object-contain mb-2 self-start" />
-              ) : (
-                <h1 className="font-gravity text-5xl font-extrabold text-white mb-2 leading-none">
-                  {currentSeries.title}
-                </h1>
-              )}
-              
-              <h2 className="text-white font-gravity font-bold text-xl mb-2">
-                {currentSeries.bannerText || (currentSeries.isComingSoon ? 'Muy Pronto' : 'Todos los episodios disponibles')}
-              </h2>
+            
+            <div className="absolute inset-x-0 bottom-0 h-64 bg-gradient-to-t from-black/80 via-black/20 to-transparent z-[6]" />
+            <div className="absolute inset-0 flex flex-col justify-start items-start p-16 pt-20 lg:pt-24 z-10">
+              <div className="max-w-2xl relative drop-shadow-[0_10px_20px_rgba(0,0,0,0.8)]">
+                {currentSeries.logoUrl ? (
+                  <img src={currentSeries.logoUrl || undefined} alt={currentSeries.title} className="h-40 lg:h-52 w-auto object-contain mb-2 self-start" />
+                ) : (
+                  <h1 className="font-gravity text-5xl font-extrabold text-white mb-2 leading-none">
+                    {currentSeries.title}
+                  </h1>
+                )}
+                
+                <h2 className="text-white font-gravity font-bold text-xl mb-2">
+                  {currentSeries.bannerText || (currentSeries.isComingSoon ? 'Muy Pronto' : 'Todos los episodios disponibles')}
+                </h2>
 
-              <div className="flex items-center gap-2 text-gray-300 text-xs font-medium">
-                 <span className="bg-white/20 px-1.5 py-0.5 rounded text-white border border-white/10">{currentSeries.contentRating || "TV-14"}</span>
-                 <span>{currentSeries.year}</span>
-                 <span>•</span>
-                 <span>{currentSeries.genre}</span>
+                <div className="flex items-center gap-2 text-gray-300 text-xs font-medium">
+                   <span className="bg-white/20 px-1.5 py-0.5 rounded text-white border border-white/10">{currentSeries.contentRating || "TV-14"}</span>
+                   <span>{currentSeries.year}</span>
+                   <span>•</span>
+                   <span>{currentSeries.genre}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Mobile Version - 1080x1440 Poster */}
+          <div className="md:hidden w-full relative">
+            <img 
+              src={currentSeries.mobileBannerImage || currentSeries.coverImage || undefined} 
+              alt={currentSeries.title} 
+              className="w-full aspect-[3/4] object-cover block"
+            />
+            
+            <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-[#0e0e0e] via-[#0e0e0e]/60 to-transparent" />
+
+            <div className="absolute inset-x-0 bottom-0 p-6 flex flex-col items-center gap-4">
+              {currentSeries.logoUrl && (
+                <img 
+                  src={currentSeries.logoUrl} 
+                  className="h-20 w-auto object-contain drop-shadow-[0_0_15px_rgba(0,0,0,0.8)]" 
+                  alt="Logo" 
+                />
+              )}
+
+              <div className="flex items-center gap-3 w-full">
+                <button 
+                  onClick={(e) => { e.stopPropagation(); onSeriesClick(currentSeries); }}
+                  className="flex-[3] bg-white text-black font-inter font-black py-3 rounded-lg flex items-center justify-center gap-2 text-[14px] active:scale-95 transition-transform"
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.14v13.72l11-6.86L8 5.14z"/></svg>
+                  Reproducir
+                </button>
+                <button 
+                  onClick={(e) => { e.stopPropagation(); onToggleFav(e, currentSeries.id); }}
+                  className="flex-[2] bg-[#2a2a2a]/60 text-white font-inter font-black py-3 rounded-lg flex items-center justify-center gap-2 text-[14px] backdrop-blur-md border border-white/10 active:scale-95 transition-transform"
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                  Mi lista
+                </button>
               </div>
             </div>
           </div>
         </div>
+      );
+    }
 
-        {/* Mobile Version - 1080x1440 Poster */}
-        <div className="md:hidden w-full relative">
-          <img 
-            src={currentSeries.mobileBannerImage || currentSeries.coverImage || undefined} 
-            alt={currentSeries.title} 
-            className="w-full aspect-[3/4] object-cover block"
-          />
-          
-          {/* Stronger bottom gradient for text contrast */}
-          <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-[#0e0e0e] via-[#0e0e0e]/60 to-transparent" />
-
-          {/* Bottom UI inside card */}
-          <div className="absolute inset-x-0 bottom-0 p-6 flex flex-col items-center gap-4">
-            {/* Logo centered */}
-            {currentSeries.logoUrl && (
+    return (
+      <div className="w-full relative bg-black overflow-hidden" style={{ maxWidth: '2880px', margin: '0 auto' }}>
+        <AnimatePresence mode="wait">
+          <motion.div 
+            key={currentBannerIndex}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 1 }}
+            className="w-full relative"
+          >
+            {/* Desktop Version */}
+            <div className="hidden md:block w-full relative">
+              <picture className="w-full block">
+                <source media="(max-width: 768px)" srcSet={heroBanners[currentBannerIndex].mobileImage} />
+                <img 
+                  src={heroBanners[currentBannerIndex].desktopImage} 
+                  alt={heroBanners[currentBannerIndex].title} 
+                  className="w-full object-contain object-center block"
+                />
+              </picture>
+              
               <img 
-                src={currentSeries.logoUrl} 
-                className="h-20 w-auto object-contain drop-shadow-[0_0_15px_rgba(0,0,0,0.8)]" 
-                alt="Logo" 
+                src="/src/assets/images/regenerated_image_1777741269617.png" 
+                className="absolute inset-0 w-full h-full object-cover z-[5] pointer-events-none" 
+                alt="Banner Overlay" 
+                referrerPolicy="no-referrer"
               />
-            )}
+              
+              <div className="absolute inset-x-0 bottom-0 h-64 bg-gradient-to-t from-black/80 via-black/20 to-transparent z-[6]" />
+              <div className="absolute inset-0 flex flex-col justify-start items-start p-16 pt-20 lg:pt-24 z-10">
+                <div className="max-w-2xl relative drop-shadow-[0_10px_20px_rgba(0,0,0,0.8)]">
+                  {heroBanners[currentBannerIndex].logoUrl ? (
+                    <img src={heroBanners[currentBannerIndex].logoUrl} alt={heroBanners[currentBannerIndex].title} className="h-40 lg:h-52 w-auto object-contain mb-2 self-start" />
+                  ) : (
+                    <h1 className="font-gravity text-5xl font-extrabold text-white mb-2 leading-none">
+                      {heroBanners[currentBannerIndex].title}
+                    </h1>
+                  )}
+                  
+                  <h2 className="text-white font-gravity font-bold text-xl mb-2">
+                    {heroBanners[currentBannerIndex].subtitle}
+                  </h2>
 
-            {/* Buttons */}
-            <div className="flex items-center gap-3 w-full">
-              <button 
-                onClick={(e) => { e.stopPropagation(); onSeriesClick(currentSeries); }}
-                className="flex-[3] bg-white text-black font-inter font-black py-3 rounded-lg flex items-center justify-center gap-2 text-[14px] active:scale-95 transition-transform"
-              >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.14v13.72l11-6.86L8 5.14z"/></svg>
-                Reproducir
-              </button>
-              <button 
-                onClick={(e) => { e.stopPropagation(); onToggleFav(e, currentSeries.id); }}
-                className="flex-[2] bg-[#2a2a2a]/60 text-white font-inter font-black py-3 rounded-lg flex items-center justify-center gap-2 text-[14px] backdrop-blur-md border border-white/10 active:scale-95 transition-transform"
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                Mi lista
-              </button>
+                  {heroBanners[currentBannerIndex].badge && (
+                    <div className="flex items-center gap-2 text-gray-300 text-xs font-medium">
+                       <span className="bg-white/20 px-1.5 py-0.5 rounded text-white border border-white/10">{heroBanners[currentBannerIndex].badge}</span>
+                    </div>
+                  )}
+                  
+                  {heroBanners[currentBannerIndex].customText && (
+                    <p className="text-gray-300 text-sm mt-4">{heroBanners[currentBannerIndex].customText}</p>
+                  )}
+                </div>
+              </div>
             </div>
+
+            {/* Mobile Version */}
+            <div className="md:hidden w-full relative">
+              <img 
+                src={heroBanners[currentBannerIndex].mobileImage} 
+                alt={heroBanners[currentBannerIndex].title} 
+                className="w-full aspect-[3/4] object-cover block"
+              />
+              
+              <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-[#0e0e0e] via-[#0e0e0e]/60 to-transparent" />
+
+              <div className="absolute inset-x-0 bottom-0 p-6 flex flex-col items-center gap-4">
+                {heroBanners[currentBannerIndex].logoUrl ? (
+                  <img 
+                    src={heroBanners[currentBannerIndex].logoUrl} 
+                    className="h-20 w-auto object-contain drop-shadow-[0_0_15px_rgba(0,0,0,0.8)]" 
+                    alt="Logo" 
+                  />
+                ) : (
+                  <h1 className="font-gravity text-3xl font-extrabold text-white text-center">
+                    {heroBanners[currentBannerIndex].title}
+                  </h1>
+                )}
+                
+                {heroBanners[currentBannerIndex].customText && (
+                  <p className="text-gray-300 text-xs text-center">{heroBanners[currentBannerIndex].customText}</p>
+                )}
+              </div>
+            </div>
+          </motion.div>
+        </AnimatePresence>
+
+        {/* Indicators */}
+        {heroBanners.length > 1 && (
+          <div className="absolute bottom-4 left-0 right-0 z-20 flex justify-center gap-2">
+            {heroBanners.map((_, idx) => (
+              <button 
+                key={idx}
+                onClick={() => setCurrentBannerIndex(idx)}
+                className={`w-2 h-2 rounded-full transition-all ${currentBannerIndex === idx ? 'bg-white scale-125' : 'bg-white/40 hover:bg-white/60'}`}
+              />
+            ))}
           </div>
-        </div>
+        )}
       </div>
+    );
+  };
+
+  return (
+    <div className="pb-12 fade-in">
+      {renderHeroBanner()}
 
 
       {favoriteSeries.length > 0 && (

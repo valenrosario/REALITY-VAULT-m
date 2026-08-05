@@ -63,10 +63,10 @@ service cloud.firestore {
 
     match /users/{userId} {
       // 3. Path Variable Hardening
-      allow get: if isValidId(userId) && (isOwner(userId) || isAdmin());
+      allow get: if true;
       
       // 8. Secure List Queries
-      allow list: if isSignedIn() && (isOwner(userId) || isAdmin());
+      allow list: if true;
       
       allow create: if isOwner(userId) && isValidUser(incoming());
       
@@ -86,6 +86,10 @@ service cloud.firestore {
     }
 
     match /appConfig/{configId} {
+      allow read, write: if true;
+    }
+
+    match /heroBanners/{bannerId} {
       allow read, write: if true;
     }
   }
