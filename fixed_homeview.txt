@@ -1,0 +1,446 @@
+const HomeView = ({
+  seriesData, 
+  favorites, 
+  onToggleFav, 
+  onSeriesClick,
+  searchQuery,
+  onGifClick,
+  isLoadingSeries,
+  watchedEpisodes,
+  heroBanners
+}: { 
+  favorites: string[], 
+  onToggleFav: (e: React.MouseEvent, id: string) => void, 
+  onSeriesClick: (series: Series) => void,
+  searchQuery: string,
+  onGifClick: () => void,
+  isLoadingSeries?: boolean,
+  watchedEpisodes: string[],
+  seriesData: Series[],
+  heroBanners: any[]
+}) => {
+  const retroSeries = seriesData.filter(s => !s.isComingSoon && s.id !== "serie-charm-school");
+  const comingSoonSeries = seriesData.filter(s => s.isComingSoon && s.id !== "serie-charm-school");
+  const favoriteSeries = seriesData.filter(s => favorites.includes(s.id) && s.id !== "serie-charm-school");
+  
+  const defaultStaticBanners = [
+    {
+      ...(seriesData.find(s => s.id === "serie-1") || {}),
+      id: "serie-1",
+      title: "Charm School",
+      mobileBannerImage: "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEh-pXI-BYvApJ1ahhjrbrjM0QooO3dAq3pZ_PrerEQcyO9bv4k1xOI_J5oWDDZMKTkR22YI-UTdeMX75yrXi7Ru8hAUiGg8850I83A-8_hp0Pu-WwYGZCO6c6s0pkMGfoO-h7s5u3JLMJVQgUuzf0syOzbWtASlJRatRB4vGjSkqZnjqIh-5gYX3np_Qls/s2160/3.png",
+      bannerImage: "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgOomfkLFt78XcgzdaNS81yWn2PjfGg83VubO4g-zB7VZ42EW5F7YoWfzV2l7px3_jf1lBAoRNACoWTYK8pRNyoZaQqWDER5GuNcW31jjbe8iDkiBR17QLIMtFkZ-mQa0_XcBu7H0lgpBF7TDjTKAG2idEa8SECFMeyg9de13orTKHNLxkZOChx7lGKpKA/s3225/cc.png",
+      mobileLogoUrl: "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEh4SXg7NW32uFbjkEdyGKvnOEncgKN_UmWk497bhne7KyH_CrAlNF9xGY8BEs-cc6UumqRwxw68VRzI03ePXbWt0nJHmX1TgIVFdbBqZlVsmWvqCk3K-cKchhf1tOh4FwXX-adTsZ-21ufQIpuMGTcTNKY9fa23lbiREdQma_PET6s7PWhsiML-E4dPwBs/s352/1.png",
+      logoUrl: "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEh4SXg7NW32uFbjkEdyGKvnOEncgKN_UmWk497bhne7KyH_CrAlNF9xGY8BEs-cc6UumqRwxw68VRzI03ePXbWt0nJHmX1TgIVFdbBqZlVsmWvqCk3K-cKchhf1tOh4FwXX-adTsZ-21ufQIpuMGTcTNKY9fa23lbiREdQma_PET6s7PWhsiML-E4dPwBs/s352/1.png",
+      bannerCustomText: "Segunda Temporada Disponible",
+      bannerText: "Segunda Temporada Disponible",
+      isThirdBanner: true
+    } as any,
+    (seriesData.find(s => s.id === "serie-3") || { id: "serie-3", title: "Serie 3" }),
+    (seriesData.find(s => s.id === "serie-1") || { id: "serie-1", title: "Serie 1" }),
+    {
+      ...(seriesData.find(s => s.id === "serie-2") || {}),
+      id: "serie-2",
+      title: "Flavor of Love",
+      mobileBannerImage: "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEiNTTC68GkkBhUfpbIVnLQeUU6VQG5rwLFd9u5i2k2QucydcVyCPsd_XJkYdaGFXDON3zXgIeRMbFxVyCIFuU3VHE4c-Ydrd2vWBD9bG_rHgMFqRDIXIWLDOsqRfs826vzEUm3Nl7gjJuVHVN4mvI8f9US-IjjiL2X4R0D0BfMHOeiFlczJwzVlygj03w0/s2160/sa.png",
+      bannerImage: "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEg1kYHW8sP2GgNuuyFFgQ3bkQJnzMKlqXf1a8EB3WsUEt-9CqTPAjaBT5xcaCdtYTwEU-2jZ1wdhfJqgFRZ-koCoLuy_BX0CW3-7mOrtnqumJ4yQAKtQGEI2ehZ0z1kwwdiiiI5WLls29L7oJ-Te4D2Aonnwk4lH9LM5ttAh-0i7ufU70fqSz_ZIdh59RU/s1440/compose.png",
+      mobileLogoUrl: "https://imageservice.disco.peacocktv.com/uuid/501d6b9d-7b2c-35e9-8936-0475a0661330/LOGO_TITLE_WIDE?language=eng&proposition=NBCUOTT&version=778f50c2-4e62-3788-9d20-823d3a1b15c2",
+      logoUrl: "https://imageservice.disco.peacocktv.com/uuid/501d6b9d-7b2c-35e9-8936-0475a0661330/LOGO_TITLE_WIDE?language=eng&proposition=NBCUOTT&version=778f50c2-4e62-3788-9d20-823d3a1b15c2",
+      isFourthBanner: true
+    } as any
+  ];
+
+  const activeLiveBanners = heroBanners ? heroBanners.filter((b: any) => b.isVisible !== false) : [];
+  const displayBanners = activeLiveBanners.length > 0 ? activeLiveBanners : defaultStaticBanners;
+
+  const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
+
+  useEffect(() => {
+    setCurrentBannerIndex(0);
+  }, [displayBanners.length]);
+
+  // Swipe states
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
+  const minSwipeDistance = 50;
+
+  const onTouchStartBanner = (e: React.TouchEvent) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const onTouchMoveBanner = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const onTouchEndBanner = () => {
+    if (!touchStart || !touchEnd) return;
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > minSwipeDistance;
+    const isRightSwipe = distance < -minSwipeDistance;
+    if (isLeftSwipe) {
+      setCurrentBannerIndex(prev => (prev + 1) % displayBanners.length);
+    }
+    if (isRightSwipe) {
+      setCurrentBannerIndex(prev => (prev - 1 + displayBanners.length) % displayBanners.length);
+    }
+  };
+
+  // Auto-avance del carrusel
+  useEffect(() => {
+    if (displayBanners.length === 0) return;
+    const interval = setInterval(() => {
+      setCurrentBannerIndex(prev => (prev + 1) % displayBanners.length);
+    }, 15000);
+    return () => clearInterval(interval);
+  }, [displayBanners.length]);
+
+  const nextBanner = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    setCurrentBannerIndex(prev => (prev + 1) % displayBanners.length);
+  };
+
+  const prevBanner = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    setCurrentBannerIndex(prev => (prev - 1 + displayBanners.length) % displayBanners.length);
+  };
+
+  const currentSeries = displayBanners[currentBannerIndex] || displayBanners[0] || defaultStaticBanners[0];
+
+  // SEARCH MODE
+  if (searchQuery) {
+    const normalizeString = (str: string) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+    const query = normalizeString(searchQuery);
+    
+    const filteredSeries = seriesData.filter(serie => 
+      serie.id !== "serie-charm-school" && (
+      normalizeString(serie.title).includes(query) ||
+      normalizeString(serie.description).includes(query) ||
+      (serie.tags || []).some(tag => normalizeString(tag).includes(query)) ||
+      (serie.cast && serie.cast.some(actor => normalizeString(actor).includes(query))) ||
+      (serie.seasons || []).some(season => 
+         (season.episodes || []).some(ep => 
+           normalizeString(ep.title).includes(query) ||
+           normalizeString(ep.description).includes(query)
+        )
+      ))
+    );
+
+    return (
+      <div className="max-w-6xl mx-auto px-4 py-8 fade-in min-h-[60vh] pt-24">
+        <h2 id="series-section" className="font-gravity text-2xl font-bold text-pink-600 dark:text-pink-400 mb-6 flex items-center gap-2">
+          <Search size={24} /> Resultados de búsqueda: "{searchQuery}"
+        </h2>
+        {isLoadingSeries ? (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-8">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <SeriesCardSkeleton key={`search-skeleton-${i}`} />
+            ))}
+          </div>
+        ) : filteredSeries.length > 0 ? (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-8">
+            {filteredSeries.map((serie) => (
+              <SeriesCard 
+                key={serie.id} 
+                serie={serie} 
+                isFav={favorites.includes(serie.id)}
+                onToggleFav={(e) => onToggleFav(e, serie.id)}
+                onClick={() => onSeriesClick(serie)}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+            <p className="text-xl">No encontramos nada con esa búsqueda :(</p>
+            <p className="text-sm mt-2">Intenta con otro título o actor.</p>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="pb-12 fade-in relative">
+      {/* Hero Carousel Dinámico */}
+      <div 
+        onClick={() => onSeriesClick(seriesData.find(s => s.id === currentSeries.id) || currentSeries)}
+        onTouchStart={onTouchStartBanner}
+        onTouchMove={onTouchMoveBanner}
+        onTouchEnd={onTouchEndBanner}
+        className="relative w-full overflow-hidden mx-auto max-w-none group transition-all duration-300 cursor-pointer bg-black"
+        style={{ maxWidth: '2880px' }}
+      >
+        <div className="hidden md:block w-full relative">
+          {/* Spacer */}
+          <picture className="w-full h-auto block invisible pointer-events-none">
+            <source media="(max-width: 768px)" srcSet={currentSeries.mobileBannerImage || currentSeries.coverImage || undefined} />
+            <img 
+              src={currentSeries.bannerImage || currentSeries.coverImage || undefined} 
+              alt="Spacer" 
+              className="w-full h-auto"
+            />
+          </picture>
+          <AnimatePresence initial={false} mode="popLayout">
+            <motion.div 
+              key={currentSeries.id || currentBannerIndex}
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.8, ease: "easeOut" }}
+              className="absolute inset-0 w-full h-full"
+            >
+                <picture className="w-full h-auto block">
+                  <source media="(max-width: 768px)" srcSet={currentSeries.mobileBannerImage || currentSeries.coverImage || undefined} />
+                  <img 
+                    src={currentSeries.bannerImage || currentSeries.coverImage || undefined} 
+                    alt={currentSeries.title} 
+                    className="w-full h-auto block object-contain object-center"
+                    referrerPolicy="no-referrer"
+                  />
+                </picture>
+                
+                {/* Degradado superpuesto para texto */}
+                <div className="absolute inset-x-0 bottom-0 h-64 bg-gradient-to-t from-black via-black/40 to-transparent z-[5]" />
+                
+                <div className="absolute inset-0 flex flex-col justify-end p-16 pb-20 z-10">
+                  <div className="max-w-2xl relative">
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.2, duration: 0.4 }}
+                    >
+                      {currentSeries.logoUrl ? (
+                        <img 
+                          src={currentSeries.logoUrl || undefined} 
+                          alt={currentSeries.title} 
+                          className={`w-auto object-contain mb-2 self-start ${currentSeries.id === 'serie-3' ? 'h-8 md:h-12 lg:h-16' : ('isThirdBanner' in currentSeries) ? 'h-16 md:h-20 lg:h-24' : ('isFourthBanner' in currentSeries) ? 'h-10 md:h-16 lg:h-24' : 'h-12 md:h-24 lg:h-32'}`} 
+                          referrerPolicy="no-referrer"
+                        />
+                      ) : (
+                        <h1 className="font-gravity text-3xl md:text-5xl font-extrabold text-white mb-2 leading-none">
+                          {currentSeries.title}
+                        </h1>
+                      )}
+                      
+                      <h2 className="text-white font-gravity font-bold text-base md:text-xl mb-2">
+                        {currentSeries.bannerText || (currentSeries.isComingSoon ? 'Muy Pronto' : 'Todos los episodios disponibles')}
+                      </h2>
+
+                      <div className="flex items-center gap-2 text-gray-300 text-[10px] md:text-xs font-medium">
+                         <span className="bg-white/20 px-1.5 py-0.5 rounded text-white border border-white/10">{currentSeries.contentRating || "TV-14"}</span>
+                         {('bannerCustomText' in currentSeries) && (currentSeries as any).bannerCustomText ? (
+                            <span className="text-white">{String((currentSeries as any).bannerCustomText)}</span>
+                         ) : (
+                           <>
+                             <span>{currentSeries.year || '2000'}</span>
+                             <span>•</span>
+                             <span>{currentSeries.genre || 'Reality'}</span>
+                           </>
+                         )}
+                      </div>
+                      
+                      <p className="text-gray-300 text-sm md:text-base line-clamp-2 md:line-clamp-3 mt-4 mb-6 font-inter font-medium leading-relaxed drop-shadow-sm max-w-xl">
+                        {currentSeries.description}
+                      </p>
+                    </motion.div>
+                  </div>
+                </div>
+            </motion.div>
+          </AnimatePresence>
+        </div>
+
+        {/* Mobile Version - 1080x1440 Poster aspect ratio */}
+        <div className="md:hidden w-full relative aspect-[2/3] overflow-hidden">
+          <img 
+            src={currentSeries.mobileBannerImage || currentSeries.coverImage || undefined} 
+            alt={currentSeries.title} 
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+
+          {/* Bottom UI inside card */}
+          <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black via-black/40 to-transparent z-[5]" />
+          <div className="absolute inset-x-0 bottom-0 p-5 pb-8 flex flex-col items-center justify-end z-10 h-full">
+            {/* Logo */}
+            {(currentSeries.mobileLogoUrl || currentSeries.logoUrl) && (
+              <img 
+                src={currentSeries.mobileLogoUrl || currentSeries.logoUrl} 
+                className={`${currentSeries.id === 'serie-3' ? 'w-[120px]' : ('isThirdBanner' in currentSeries) ? 'w-[240px]' : ('isFourthBanner' in currentSeries) ? 'w-[160px]' : 'w-[210px]'} h-auto max-w-[85%] object-contain drop-shadow-[0_0_15px_rgba(0,0,0,0.6)] mb-3`} 
+                alt="Logo" 
+              />
+            )}
+            
+            {/* Metadata */}
+            <div className="flex items-center gap-2 text-white/90 text-[13px] font-medium drop-shadow-md mb-3">
+               <span className="bg-white/20 px-1.5 py-0.5 rounded text-white border border-white/10">{currentSeries.contentRating || "TV-14"}</span>
+               {('bannerCustomText' in currentSeries) && (currentSeries as any).bannerCustomText ? (
+                 <span>{String((currentSeries as any).bannerCustomText)}</span>
+               ) : (
+                 <>
+                   <span>{currentSeries.year || '2000'}</span>
+                   <span>•</span>
+                   <span>{currentSeries.genre || 'Reality'}</span>
+                 </>
+               )}
+            </div>
+
+            {/* Buttons */}
+            <div className="flex items-center gap-3 w-full">
+              {currentSeries.id === "serie-3" ? (
+                <button 
+                  onClick={(e) => { e.stopPropagation(); onSeriesClick(seriesData.find(s => s.id === currentSeries.id) || currentSeries); }}
+                  className="flex-1 bg-white text-black font-inter font-black py-4 rounded-xl flex items-center justify-center gap-2 text-[15px] active:scale-95 transition-transform shadow-lg"
+                >
+                  <Play size={20} className="fill-black" />
+                  PRÓXIMAMENTE
+                </button>
+              ) : (
+                <>
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); onSeriesClick(seriesData.find(s => s.id === currentSeries.id) || currentSeries); }}
+                    className="flex-[3] bg-white text-black font-inter font-black py-4 rounded-xl flex items-center justify-center gap-2 text-[15px] active:scale-95 transition-transform shadow-lg"
+                  >
+                    <Play size={20} className="fill-black" />
+                    REPRODUCIR
+                  </button>
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); onToggleFav(e, currentSeries.id); }}
+                    className="flex-[2] bg-[#2a2a2a]/60 text-white font-inter font-black py-4 rounded-xl flex items-center justify-center gap-2 text-[15px] backdrop-blur-md border border-white/10 active:scale-95 transition-transform shadow-md"
+                  >
+                    {favorites.includes(currentSeries.id) ? (
+                      <Check size={20} />
+                    ) : (
+                      <Plus size={20} />
+                    )}
+                    MI LISTA
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+        
+        {/* Controles del Carrusel */}
+        {displayBanners.length > 1 && (
+          <>
+            <button 
+              onClick={prevBanner}
+              className="absolute left-4 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/20 hover:bg-black/60 text-white backdrop-blur-sm transition-all opacity-0 group-hover:opacity-100 hidden md:block z-20"
+            >
+              <ChevronLeft size={32} />
+            </button>
+            <button 
+              onClick={nextBanner}
+              className="absolute right-4 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/20 hover:bg-black/60 text-white backdrop-blur-sm transition-all opacity-0 group-hover:opacity-100 hidden md:block z-20"
+            >
+              <ChevronRight size={32} />
+            </button>
+            
+            {/* Indicadores (Puntos) */}
+            <div className="absolute bottom-2 md:bottom-10 right-1/2 translate-x-1/2 flex gap-2 z-20">
+              {displayBanners.map((_, idx) => (
+                <button
+                  key={idx}
+                  onClick={(e) => { e.stopPropagation(); setCurrentBannerIndex(idx); }}
+                  className={`transition-all duration-300 rounded-full ${currentBannerIndex === idx ? 'w-6 md:w-8 h-2 md:h-2.5 bg-pink-500' : 'w-2 md:w-2.5 h-2 md:h-2.5 bg-white/40 hover:bg-white/60'}`}
+                />
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* Sección Favoritos (Mi Lista) */}
+      {(isLoadingSeries || favoriteSeries.length > 0) && (
+        <div className="w-full px-4 md:px-12 mt-8 md:mt-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="flex items-center justify-between mb-2 md:mb-4">
+            <h2 className="font-gravity text-xl md:text-2xl font-bold text-pink-600 dark:text-pink-400 flex items-center gap-2 drop-shadow-sm">
+              <Heart className="w-5 h-5 md:w-6 md:h-6" fill="currentColor" /> Mi Lista
+            </h2>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-6 p-2">
+            {isLoadingSeries ? (
+              Array.from({ length: 4 }).map((_, i) => (
+                <WideSeriesCardSkeleton key={`fav-skeleton-${i}`} />
+              ))
+            ) : (
+              favoriteSeries.map(serie => (
+                <div 
+                  key={serie.id} 
+                  onClick={() => onSeriesClick(serie)}
+                  className="aspect-[16/9] cursor-pointer group/card relative"
+                > 
+                  <div className="w-full h-full rounded-xl overflow-hidden shadow-lg transition-all duration-300 transform hover:scale-105 ring-2 ring-transparent hover:ring-white ring-offset-2 ring-offset-transparent">
+                    <img 
+                      src={serie.wideImage || `https://placehold.co/800x449/FF00FF/FFFFFF/png?text=${encodeURIComponent(serie.title)}`}
+                      alt={serie.title} 
+                      className="w-full h-full object-cover"
+                    />
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); onToggleFav(e, serie.id); }}
+                      className="absolute top-2 right-2 bg-black/40 hover:bg-pink-500 text-white rounded-full p-2 transition-all z-30"
+                    >
+                      <Heart size={16} className="text-pink-500 fill-current" />
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Retro Series - Horizontal Slider */}
+      <div className="w-full px-4 md:px-12 mt-8 md:mt-12" id="series-section">
+        <h2 className="font-gravity text-xl md:text-2xl font-bold text-white mb-2 md:mb-4 pl-3 border-l-4 border-pink-500 drop-shadow-sm">
+          Años 2000s (Retro)
+        </h2>
+        
+        <div className="relative group/slider">
+          <div className="flex overflow-x-auto gap-2 md:gap-6 py-4 md:py-6 px-2 md:px-4 snap-x snap-mandatory scroll-smooth no-scrollbar">
+            {isLoadingSeries ? (
+              Array.from({ length: 5 }).map((_, i) => (
+                <div key={`skeleton-${i}`} className="min-w-[150px] w-[150px] md:min-w-[240px] md:w-[240px] snap-center">
+                  <SeriesCardSkeleton />
+                </div>
+              ))
+            ) : (
+              retroSeries.map((serie) => (
+                <div key={serie.id} className="min-w-[150px] w-[150px] md:min-w-[240px] md:w-[240px] snap-center shrink-0">
+                  <SeriesCard 
+                    serie={serie} 
+                    isFav={favorites.includes(serie.id)}
+                    onToggleFav={(e) => onToggleFav(e, serie.id)}
+                    onClick={() => onSeriesClick(serie)}
+                  />
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Próximamente - Horizontal Slider */}
+      {(isLoadingSeries || comingSoonSeries.length > 0) && (
+        <div className="w-full px-4 md:px-12 pb-8">
+          <div className="flex items-center justify-between mb-2 md:mb-4">
+            <h2 className="font-gravity text-xl md:text-2xl font-bold text-blue-600 dark:text-blue-400 flex items-center gap-2 drop-shadow-sm">
+              <Zap className="w-5 h-5 md:w-6 md:h-6" /> Próximamente
+            </h2>
+          </div>
+          
+          <div className="relative group/slider">
+            <div className="flex overflow-x-auto gap-3 md:gap-6 py-4 md:py-6 px-2 md:px-4 snap-x snap-mandatory scroll-smooth no-scrollbar">
+              {isLoadingSeries ? (
+                Array.from({ length: 4 }).map((_, i) => (
+                  <div key={`coming-skeleton-${i}`} className="min-w-[240px] md:min-w-[320px] lg:min-w-[400px] aspect-[16/9] snap-center">
+                    <WideSeriesCardSkeleton />
+                  </div>
+                ))
+              ) : (
+                comingSoonSeries.map((serie) => (
+                  <div 
+                    key={serie.id} 
+                    onClick={() => onSeriesClick(serie)}
+                    className="min-w-[240px] md:min-w-[320px] lg:min-w-[400px] aspect-[16/9] snap-center shrink-0 cursor-pointer group/card relative rounded-xl overflow-hidden shadow-lg border-2 border-blue-500/30 hover:border-blue-400 transition-all duration-300"
+                  > 
+                     <div className="w-full h-full relative">                        <div className="absolute inset-0 bg-gradient-to-t from-[#0e0e0e] via-[#0e0e0e]/20 to-transparent z-10" />                        <img                           src={serie.wideImage || `https://placehold.co/800x449/2563eb/FFFFFF/png?text=${encodeURIComponent(serie.title)}`}                          alt={serie.title}                           className="w-full h-full object-cover"                          referrerPolicy="no-referrer"                        />                        {/* Badge Próximamente */}                        <div className="absolute bottom-4 left-4 z-20">                          <span className="bg-blue-600 text-white text-xs md:text-sm font-bold px-4 py-1.5 rounded-full shadow-lg">                            Próximamente                          </span>                        </div>                     </div>                  </div>                ))              )}            </div>          </div>        </div>      )}    </div>  );};

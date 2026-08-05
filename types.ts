@@ -48,6 +48,12 @@ export interface Series {
   subtitleLanguages?: string[];
   copyright?: string;
   gallery?: { id: string; url: string; category: string; }[];
+  topBadge?: string;
+  featureBadges?: string[];
+  bannerCustomText?: string;
+  isVisible?: boolean;
+  isThirdBanner?: boolean;
+  isFourthBanner?: boolean;
 }
 
 export interface HeroBanner {
@@ -62,6 +68,12 @@ export interface HeroBanner {
   badge?: string;
   customText?: string;
   isVisible?: boolean;
+  topBadge?: string;
+  featureBadges?: string[];
+  bannerCustomText?: string;
+  isVisible?: boolean;
+  isThirdBanner?: boolean;
+  isFourthBanner?: boolean;
 }
 
 export interface User {

@@ -17,6 +17,7 @@ interface HomeViewProps {
   onGifClick: () => void;
   isLoadingSeries?: boolean;
   seriesData: Series[];
+  heroBanners: any[];
 }
 
 const HomeView = ({
@@ -25,20 +26,10 @@ const HomeView = ({
   onToggleFav, 
   onSeriesClick,
   searchQuery,
-  onGifClick
+  onGifClick,
+  heroBanners
 }: HomeViewProps) => {
-  const [heroBanners, setHeroBanners] = useState<any[]>([]);
   const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
-
-  useEffect(() => {
-    const unsubscribe = onSnapshot(collection(db, 'heroBanners'), (snapshot) => {
-      const bannerData = snapshot.docs.map(doc => ({ id: doc.id, ...(doc.data() as any) }));
-      const visibleBanners = bannerData.filter(b => b.isVisible !== false);
-      visibleBanners.sort((a: any, b: any) => (a.order ?? 0) - (b.order ?? 0));
-      setHeroBanners(visibleBanners);
-    });
-    return () => unsubscribe();
-  }, []);
 
   useEffect(() => {
     if (heroBanners.length <= 1) return;
@@ -148,11 +139,10 @@ const HomeView = ({
     );
   }
 
-  const renderHeroBanner = () => {
+ const renderHeroBanner = () => {
     if (heroBanners.length === 0) {
       return (
-        <div 
-          onClick={() => onSeriesClick(currentSeries)}
+        <div           onClick={() => onSeriesClick(currentSeries)}
           className="w-full relative group cursor-pointer bg-black"
           style={{ maxWidth: '2880px', margin: '0 auto' }}
         >
@@ -160,23 +150,24 @@ const HomeView = ({
           <div className="hidden md:block w-full relative">
             <picture className="w-full block">
               <source media="(max-width: 768px)" srcSet={currentSeries.mobileBannerImage || currentSeries.coverImage || undefined} />
-              <img 
-                src={currentSeries.bannerImage || currentSeries.coverImage || undefined} 
-                alt={currentSeries.title} 
-                className="w-full object-contain object-center block"
+              <img                 src={currentSeries.bannerImage || currentSeries.coverImage || undefined}
+                 alt={currentSeries.title}
+                 className="w-full object-contain object-center block"
               />
             </picture>
-            
-            <img 
-              src="/src/assets/images/regenerated_image_1777741269617.png" 
-              className="absolute inset-0 w-full h-full object-cover z-[5] pointer-events-none" 
-              alt="Banner Overlay" 
-              referrerPolicy="no-referrer"
+            <img               src="/src/assets/images/regenerated_image_1777741269617.png"
+               className="absolute inset-0 w-full h-full object-cover z-[5] pointer-events-none"
+               alt="Banner Overlay"
+               referrerPolicy="no-referrer"
             />
-            
             <div className="absolute inset-x-0 bottom-0 h-64 bg-gradient-to-t from-black/80 via-black/20 to-transparent z-[6]" />
             <div className="absolute inset-0 flex flex-col justify-start items-start p-16 pt-20 lg:pt-24 z-10">
               <div className="max-w-2xl relative drop-shadow-[0_10px_20px_rgba(0,0,0,0.8)]">
+                {currentSeries.topBadge && (
+                  <span className="inline-block bg-white/90 text-black font-bold text-[10px] md:text-xs px-2 py-1 rounded shadow-md uppercase tracking-wider mb-2">
+                    {currentSeries.topBadge}
+                  </span>
+                )}
                 {currentSeries.logoUrl ? (
                   <img src={currentSeries.logoUrl || undefined} alt={currentSeries.title} className="h-40 lg:h-52 w-auto object-contain mb-2 self-start" />
                 ) : (
@@ -184,50 +175,47 @@ const HomeView = ({
                     {currentSeries.title}
                   </h1>
                 )}
-                
                 <h2 className="text-white font-gravity font-bold text-xl mb-2">
                   {currentSeries.bannerText || (currentSeries.isComingSoon ? 'Muy Pronto' : 'Todos los episodios disponibles')}
                 </h2>
-
-                <div className="flex items-center gap-2 text-gray-300 text-xs font-medium">
-                   <span className="bg-white/20 px-1.5 py-0.5 rounded text-white border border-white/10">{currentSeries.contentRating || "TV-14"}</span>
+                <div className="flex items-center gap-2 text-gray-300 text-xs font-medium flex-wrap">
+                   {currentSeries.featureBadges && currentSeries.featureBadges.map((badge, i) => (
+                     <span key={i} className="bg-white/10 border border-white/20 backdrop-blur-md text-white text-[10px] font-bold px-1.5 py-0.5 rounded flex items-center justify-center">
+                       {badge}
+                     </span>
+                   ))}
+                   {!currentSeries.featureBadges?.length && (
+                     <span className="bg-white/20 px-1.5 py-0.5 rounded text-white border border-white/10">{currentSeries.contentRating || "TV-14"}</span>
+                   )}
                    <span>{currentSeries.year}</span>
-                   <span>•</span>
+                   <span> </span>
                    <span>{currentSeries.genre}</span>
                 </div>
               </div>
             </div>
           </div>
-
-          {/* Mobile Version - 1080x1440 Poster */}
+          {/* Mobile Version */}
           <div className="md:hidden w-full relative">
-            <img 
-              src={currentSeries.mobileBannerImage || currentSeries.coverImage || undefined} 
-              alt={currentSeries.title} 
-              className="w-full aspect-[3/4] object-cover block"
+            <img               src={currentSeries.mobileBannerImage || currentSeries.coverImage || undefined}
+               alt={currentSeries.title}
+               className="w-full aspect-[3/4] object-cover block"
             />
-            
             <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-[#0e0e0e] via-[#0e0e0e]/60 to-transparent" />
-
             <div className="absolute inset-x-0 bottom-0 p-6 flex flex-col items-center gap-4">
               {currentSeries.logoUrl && (
-                <img 
-                  src={currentSeries.logoUrl} 
-                  className="h-20 w-auto object-contain drop-shadow-[0_0_15px_rgba(0,0,0,0.8)]" 
-                  alt="Logo" 
-                />
+                <img                   src={currentSeries.logoUrl}
+                   className="h-20 w-auto object-contain drop-shadow-[0_0_15px_rgba(0,0,0,0.8)]"
+                   alt="Logo"
+                 />
               )}
-
               <div className="flex items-center gap-3 w-full">
-                <button 
-                  onClick={(e) => { e.stopPropagation(); onSeriesClick(currentSeries); }}
+                <button                   onClick={(e) => { e.stopPropagation(); onSeriesClick(currentSeries); }}
                   className="flex-[3] bg-white text-black font-inter font-black py-3 rounded-lg flex items-center justify-center gap-2 text-[14px] active:scale-95 transition-transform"
                 >
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.14v13.72l11-6.86L8 5.14z"/></svg>
                   Reproducir
                 </button>
-                <button 
-                  onClick={(e) => { e.stopPropagation(); onToggleFav(e, currentSeries.id); }}
+                <button                   onClick={(e) => { e.stopPropagation(); onToggleFav(e, currentSeries.id); }}
                   className="flex-[2] bg-[#2a2a2a]/60 text-white font-inter font-black py-3 rounded-lg flex items-center justify-center gap-2 text-[14px] backdrop-blur-md border border-white/10 active:scale-95 transition-transform"
                 >
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -239,6 +227,109 @@ const HomeView = ({
         </div>
       );
     }
+
+    const currentBanner = heroBanners[currentBannerIndex] || heroBanners[0];
+    // Soporte dual: lee desktopImage o bannerImage indistintamente
+    const desktopImg = currentBanner.desktopImage || currentBanner.bannerImage || currentBanner.coverImage;
+    const mobileImg = currentBanner.mobileImage || currentBanner.mobileBannerImage || currentBanner.coverImage;
+
+    return (
+      <div className="w-full relative bg-black overflow-hidden" style={{ maxWidth: '2880px', margin: '0 auto' }}>
+        <AnimatePresence mode="wait">
+          <motion.div             key={currentBannerIndex}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 1 }}
+            className="w-full relative"
+          >
+            {/* Desktop Version */}
+            <div className="hidden md:block w-full relative">
+              <picture className="w-full block">
+                <source media="(max-width: 768px)" srcSet={mobileImg} />
+                <img                   src={desktopImg}
+                  alt={currentBanner.title}
+                  className="w-full object-contain object-center block"
+                />
+              </picture>
+              <img                 src="/src/assets/images/regenerated_image_1777741269617.png"
+                className="absolute inset-0 w-full h-full object-cover z-[5] pointer-events-none"
+                alt="Banner Overlay"
+                referrerPolicy="no-referrer"
+              />
+              <div className="absolute inset-x-0 bottom-0 h-64 bg-gradient-to-t from-black/80 via-black/20 to-transparent z-[6]" />
+              <div className="absolute inset-0 flex flex-col justify-start items-start p-16 pt-20 lg:pt-24 z-10">
+                <div className="max-w-2xl relative drop-shadow-[0_10px_20px_rgba(0,0,0,0.8)]">
+                  {currentBanner.topBadge && (
+                    <span className="inline-block bg-white/90 text-black font-bold text-[10px] md:text-xs px-2 py-1 rounded shadow-md uppercase tracking-wider mb-2">
+                      {currentBanner.topBadge}
+                    </span>
+                  )}
+                  {currentBanner.logoUrl ? (
+                    <img src={currentBanner.logoUrl} alt={currentBanner.title} className="h-40 lg:h-52 w-auto object-contain mb-2 self-start" />
+                  ) : (
+                    <h1 className="font-gravity text-5xl font-extrabold text-white mb-2 leading-none">
+                      {currentBanner.title}
+                    </h1>
+                  )}
+                  <h2 className="text-white font-gravity font-bold text-xl mb-2">
+                    {currentBanner.subtitle}
+                  </h2>
+                  <div className="flex items-center gap-2 text-gray-300 text-xs font-medium flex-wrap">
+                    {currentBanner.featureBadges && currentBanner.featureBadges.map((badge: string, i: number) => (
+                      <span key={i} className="bg-white/10 border border-white/20 backdrop-blur-md text-white text-[10px] font-bold px-1.5 py-0.5 rounded flex items-center justify-center">
+                        {badge}
+                      </span>
+                    ))}
+                    {!currentBanner.featureBadges?.length && currentBanner.badge && (
+                       <span className="bg-white/20 px-1.5 py-0.5 rounded text-white border border-white/10">{currentBanner.badge}</span>
+                    )}
+                  </div>
+                  {currentBanner.customText && (
+                    <p className="text-gray-300 text-sm mt-4">{currentBanner.customText}</p>
+                  )}
+                </div>
+              </div>
+            </div>
+            {/* Mobile Version */}
+            <div className="md:hidden w-full relative">
+              <img                 src={mobileImg}
+                alt={currentBanner.title}
+                className="w-full aspect-[3/4] object-cover block"
+              />
+              <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-[#0e0e0e] via-[#0e0e0e]/60 to-transparent" />
+              <div className="absolute inset-x-0 bottom-0 p-6 flex flex-col items-center gap-4">
+                {currentBanner.logoUrl ? (
+                  <img                     src={currentBanner.logoUrl}
+                    className="h-20 w-auto object-contain drop-shadow-[0_0_15px_rgba(0,0,0,0.8)]"
+                    alt="Logo"
+                  />
+                ) : (
+                  <h1 className="font-gravity text-3xl font-extrabold text-white text-center">
+                    {currentBanner.title}
+                  </h1>
+                )}
+                {currentBanner.customText && (
+                  <p className="text-gray-300 text-xs text-center">{currentBanner.customText}</p>
+                )}
+              </div>
+            </div>
+          </motion.div>
+        </AnimatePresence>
+        {/* Indicators */}
+        {heroBanners.length > 1 && (
+          <div className="absolute bottom-4 left-0 right-0 z-20 flex justify-center gap-2">
+            {heroBanners.map((_, idx) => (
+              <button                 key={idx}
+                onClick={() => setCurrentBannerIndex(idx)}
+                className={`w-2 h-2 rounded-full transition-all ${currentBannerIndex === idx ? 'bg-white scale-125' : 'bg-white/40 hover:bg-white/60'}`}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
 
     return (
       <div className="w-full relative bg-black overflow-hidden" style={{ maxWidth: '2880px', margin: '0 auto' }}>
@@ -272,6 +363,11 @@ const HomeView = ({
               <div className="absolute inset-x-0 bottom-0 h-64 bg-gradient-to-t from-black/80 via-black/20 to-transparent z-[6]" />
               <div className="absolute inset-0 flex flex-col justify-start items-start p-16 pt-20 lg:pt-24 z-10">
                 <div className="max-w-2xl relative drop-shadow-[0_10px_20px_rgba(0,0,0,0.8)]">
+                  {heroBanners[currentBannerIndex].topBadge && (
+                    <span className="inline-block bg-white/90 text-black font-bold text-[10px] md:text-xs px-2 py-1 rounded shadow-md uppercase tracking-wider mb-2">
+                      {heroBanners[currentBannerIndex].topBadge}
+                    </span>
+                  )}
                   {heroBanners[currentBannerIndex].logoUrl ? (
                     <img src={heroBanners[currentBannerIndex].logoUrl} alt={heroBanners[currentBannerIndex].title} className="h-40 lg:h-52 w-auto object-contain mb-2 self-start" />
                   ) : (
@@ -284,11 +380,16 @@ const HomeView = ({
                     {heroBanners[currentBannerIndex].subtitle}
                   </h2>
 
-                  {heroBanners[currentBannerIndex].badge && (
-                    <div className="flex items-center gap-2 text-gray-300 text-xs font-medium">
+                  <div className="flex items-center gap-2 text-gray-300 text-xs font-medium flex-wrap">
+                    {heroBanners[currentBannerIndex].featureBadges && heroBanners[currentBannerIndex].featureBadges.map((badge, i) => (
+                      <span key={i} className="bg-white/10 border border-white/20 backdrop-blur-md text-white text-[10px] font-bold px-1.5 py-0.5 rounded flex items-center justify-center">
+                        {badge}
+                      </span>
+                    ))}
+                    {!heroBanners[currentBannerIndex].featureBadges?.length && heroBanners[currentBannerIndex].badge && (
                        <span className="bg-white/20 px-1.5 py-0.5 rounded text-white border border-white/10">{heroBanners[currentBannerIndex].badge}</span>
-                    </div>
-                  )}
+                    )}
+                  </div>
                   
                   {heroBanners[currentBannerIndex].customText && (
                     <p className="text-gray-300 text-sm mt-4">{heroBanners[currentBannerIndex].customText}</p>

@@ -28,6 +28,7 @@ const SeriesDetailView = ({
   watchedEpisodes
 }: SeriesDetailViewProps) => {
   const [isAboutExpanded, setIsAboutExpanded] = useState(false);
+  const [selectedGalleryImage, setSelectedGalleryImage] = useState<string | null>(null);
   const isFav = favorites.includes(selectedSeries.id);
 
   return (
@@ -93,6 +94,12 @@ const SeriesDetailView = ({
         <div className="absolute inset-x-0 bottom-0 top-auto md:bottom-auto md:top-0 w-full p-4 pb-6 pt-0 md:p-12 md:pb-8 md:pt-32 lg:p-16 lg:pt-36 flex flex-col justify-end md:justify-start items-start z-20">
           <div className="max-w-2xl space-y-2 md:space-y-3 animate-in slide-in-from-left-10 duration-700 drop-shadow-[0_10px_20px_rgba(0,0,0,0.8)]">
             
+            {selectedSeries.topBadge && (
+              <span className="inline-block bg-white/90 text-black font-bold text-[10px] md:text-xs px-2 py-1 rounded shadow-md uppercase tracking-wider mb-1 md:mb-2">
+                {selectedSeries.topBadge}
+              </span>
+            )}
+
             {selectedSeries.logoUrl ? (
               <img 
                 src={selectedSeries.detailLogoUrl || selectedSeries.logoUrl || undefined} 
@@ -110,7 +117,14 @@ const SeriesDetailView = ({
             </h2>
 
             <div className="flex items-center flex-wrap gap-1.5 md:gap-3 text-[10px] md:text-sm font-medium text-white/60">
-              <span className="bg-white/20 backdrop-blur-md px-1.5 py-0.5 rounded text-white border border-white/10">Reality</span>
+              {selectedSeries.featureBadges && selectedSeries.featureBadges.map((badge, i) => (
+                <span key={i} className="bg-white/10 border border-white/20 backdrop-blur-md text-white text-[10px] font-bold px-1.5 py-0.5 rounded flex items-center justify-center">
+                  {badge}
+                </span>
+              ))}
+              {!selectedSeries.featureBadges?.length && (
+                <span className="bg-white/20 backdrop-blur-md px-1.5 py-0.5 rounded text-white border border-white/10">{selectedSeries.contentRating || "TV-14"}</span>
+              )}
               <span className="w-1 h-1 bg-white/30 rounded-full" />
               <span>{selectedSeries.year}</span>
               <span className="w-1 h-1 bg-white/30 rounded-full" />
@@ -283,17 +297,37 @@ const SeriesDetailView = ({
               <div 
                 key={img.id} 
                 className="relative group rounded-2xl overflow-hidden break-inside-avoid border border-white/10 cursor-pointer shadow-2xl hover:shadow-[0_0_20px_rgba(0,219,239,0.3)] transition-all duration-300"
-                onClick={() => window.open(img.url, '_blank')}
+                onClick={() => setSelectedGalleryImage(img.url)}
               >
                 <img src={img.url} alt={img.category} className="w-full h-auto object-cover transform group-hover:scale-105 transition-transform duration-500" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4">
-                  <span className="bg-black/50 backdrop-blur-md text-white text-xs font-bold px-3 py-1 rounded-full border border-white/20 shadow-lg">
+                  <span className="bg-black/50 backdrop-blur-md text-white text-[10px] font-bold px-3 py-1 rounded-full border border-white/20 shadow-lg">
                     {img.category}
                   </span>
                 </div>
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Gallery Modal */}
+      {selectedGalleryImage && (
+        <div 
+          className="fixed inset-0 z-[150] flex items-center justify-center bg-black/90 backdrop-blur-sm p-4 animate-in fade-in zoom-in duration-300"
+          onClick={() => setSelectedGalleryImage(null)}
+        >
+          <img 
+            src={selectedGalleryImage} 
+            alt="Gallery Fullscreen" 
+            className="max-w-full max-h-full object-contain rounded-xl shadow-2xl" 
+          />
+          <button 
+            onClick={() => setSelectedGalleryImage(null)}
+            className="absolute top-4 right-4 bg-white/10 hover:bg-white/20 text-white rounded-full p-2 transition-colors border border-white/20 backdrop-blur-md"
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          </button>
         </div>
       )}
 

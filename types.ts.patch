@@ -1,0 +1,13 @@
+--- types.ts
++++ types.ts
+@@ -32,6 +32,10 @@
+   gallery?: { id: string; url: string; category: string; }[];
+   topBadge?: string;
+   featureBadges?: string[];
++  bannerCustomText?: string;
++  isVisible?: boolean;
++  isThirdBanner?: boolean;
++  isFourthBanner?: boolean;
+ }
+ 
+ export interface HeroBanner {

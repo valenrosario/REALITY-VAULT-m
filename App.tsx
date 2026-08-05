@@ -548,6 +548,7 @@ const topSeriesData = [
 ];
 
 // --- HOME VIEW COMPONENT ---
+
 const HomeView = ({
   seriesData, 
   favorites, 
@@ -556,7 +557,8 @@ const HomeView = ({
   searchQuery,
   onGifClick,
   isLoadingSeries,
-  watchedEpisodes
+  watchedEpisodes,
+  heroBanners
 }: { 
   favorites: string[], 
   onToggleFav: (e: React.MouseEvent, id: string) => void, 
@@ -565,35 +567,48 @@ const HomeView = ({
   onGifClick: () => void,
   isLoadingSeries?: boolean,
   watchedEpisodes: string[],
-  seriesData: Series[]
+  seriesData: Series[],
+  heroBanners: any[]
 }) => {
   const retroSeries = seriesData.filter(s => !s.isComingSoon && s.id !== "serie-charm-school");
   const comingSoonSeries = seriesData.filter(s => s.isComingSoon && s.id !== "serie-charm-school");
   const favoriteSeries = seriesData.filter(s => favorites.includes(s.id) && s.id !== "serie-charm-school");
   
-  const banners = [
+  const defaultStaticBanners = [
     {
-      ...seriesData.find(s => s.id === "serie-1")!,
+      ...(seriesData.find(s => s.id === "serie-1") || {}),
+      id: "serie-1",
+      title: "Charm School",
       mobileBannerImage: "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEh-pXI-BYvApJ1ahhjrbrjM0QooO3dAq3pZ_PrerEQcyO9bv4k1xOI_J5oWDDZMKTkR22YI-UTdeMX75yrXi7Ru8hAUiGg8850I83A-8_hp0Pu-WwYGZCO6c6s0pkMGfoO-h7s5u3JLMJVQgUuzf0syOzbWtASlJRatRB4vGjSkqZnjqIh-5gYX3np_Qls/s2160/3.png",
       bannerImage: "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgOomfkLFt78XcgzdaNS81yWn2PjfGg83VubO4g-zB7VZ42EW5F7YoWfzV2l7px3_jf1lBAoRNACoWTYK8pRNyoZaQqWDER5GuNcW31jjbe8iDkiBR17QLIMtFkZ-mQa0_XcBu7H0lgpBF7TDjTKAG2idEa8SECFMeyg9de13orTKHNLxkZOChx7lGKpKA/s3225/cc.png",
       mobileLogoUrl: "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEh4SXg7NW32uFbjkEdyGKvnOEncgKN_UmWk497bhne7KyH_CrAlNF9xGY8BEs-cc6UumqRwxw68VRzI03ePXbWt0nJHmX1TgIVFdbBqZlVsmWvqCk3K-cKchhf1tOh4FwXX-adTsZ-21ufQIpuMGTcTNKY9fa23lbiREdQma_PET6s7PWhsiML-E4dPwBs/s352/1.png",
       logoUrl: "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEh4SXg7NW32uFbjkEdyGKvnOEncgKN_UmWk497bhne7KyH_CrAlNF9xGY8BEs-cc6UumqRwxw68VRzI03ePXbWt0nJHmX1TgIVFdbBqZlVsmWvqCk3K-cKchhf1tOh4FwXX-adTsZ-21ufQIpuMGTcTNKY9fa23lbiREdQma_PET6s7PWhsiML-E4dPwBs/s352/1.png",
       bannerCustomText: "Segunda Temporada Disponible",
       bannerText: "Segunda Temporada Disponible",
-      isThirdBanner: true // Marker for custom sizing
+      isThirdBanner: true
     } as any,
-    seriesData.find(s => s.id === "serie-3")!,
-    seriesData.find(s => s.id === "serie-1")!,
+    (seriesData.find(s => s.id === "serie-3") || { id: "serie-3", title: "Serie 3" }),
+    (seriesData.find(s => s.id === "serie-1") || { id: "serie-1", title: "Serie 1" }),
     {
-      ...seriesData.find(s => s.id === "serie-2")!,
+      ...(seriesData.find(s => s.id === "serie-2") || {}),
+      id: "serie-2",
+      title: "Flavor of Love",
       mobileBannerImage: "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEiNTTC68GkkBhUfpbIVnLQeUU6VQG5rwLFd9u5i2k2QucydcVyCPsd_XJkYdaGFXDON3zXgIeRMbFxVyCIFuU3VHE4c-Ydrd2vWBD9bG_rHgMFqRDIXIWLDOsqRfs826vzEUm3Nl7gjJuVHVN4mvI8f9US-IjjiL2X4R0D0BfMHOeiFlczJwzVlygj03w0/s2160/sa.png",
       bannerImage: "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEg1kYHW8sP2GgNuuyFFgQ3bkQJnzMKlqXf1a8EB3WsUEt-9CqTPAjaBT5xcaCdtYTwEU-2jZ1wdhfJqgFRZ-koCoLuy_BX0CW3-7mOrtnqumJ4yQAKtQGEI2ehZ0z1kwwdiiiI5WLls29L7oJ-Te4D2Aonnwk4lH9LM5ttAh-0i7ufU70fqSz_ZIdh59RU/s1440/compose.png",
       mobileLogoUrl: "https://imageservice.disco.peacocktv.com/uuid/501d6b9d-7b2c-35e9-8936-0475a0661330/LOGO_TITLE_WIDE?language=eng&proposition=NBCUOTT&version=778f50c2-4e62-3788-9d20-823d3a1b15c2",
       logoUrl: "https://imageservice.disco.peacocktv.com/uuid/501d6b9d-7b2c-35e9-8936-0475a0661330/LOGO_TITLE_WIDE?language=eng&proposition=NBCUOTT&version=778f50c2-4e62-3788-9d20-823d3a1b15c2",
       isFourthBanner: true
     } as any
-  ].filter(Boolean);
+  ];
+
+  const activeLiveBanners = heroBanners ? heroBanners.filter((b: any) => b.isVisible !== false) : [];
+  const displayBanners = activeLiveBanners.length > 0 ? activeLiveBanners : defaultStaticBanners;
+
   const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
+
+  useEffect(() => {
+    setCurrentBannerIndex(0);
+  }, [displayBanners.length]);
 
   // Swipe states
   const [touchStart, setTouchStart] = useState<number | null>(null);
@@ -615,33 +630,33 @@ const HomeView = ({
     const isLeftSwipe = distance > minSwipeDistance;
     const isRightSwipe = distance < -minSwipeDistance;
     if (isLeftSwipe) {
-      setCurrentBannerIndex(prev => (prev + 1) % banners.length);
+      setCurrentBannerIndex(prev => (prev + 1) % displayBanners.length);
     }
     if (isRightSwipe) {
-      setCurrentBannerIndex(prev => (prev - 1 + banners.length) % banners.length);
+      setCurrentBannerIndex(prev => (prev - 1 + displayBanners.length) % displayBanners.length);
     }
   };
 
   // Auto-avance del carrusel
   useEffect(() => {
-    if (banners.length === 0) return;
+    if (displayBanners.length === 0) return;
     const interval = setInterval(() => {
-      setCurrentBannerIndex(prev => (prev + 1) % banners.length);
-    }, 15000); // Cambiar cada 15 segundos
+      setCurrentBannerIndex(prev => (prev + 1) % displayBanners.length);
+    }, 15000);
     return () => clearInterval(interval);
-  }, [banners.length]);
+  }, [displayBanners.length]);
 
   const nextBanner = (e?: React.MouseEvent) => {
     e?.stopPropagation();
-    setCurrentBannerIndex(prev => (prev + 1) % banners.length);
+    setCurrentBannerIndex(prev => (prev + 1) % displayBanners.length);
   };
 
   const prevBanner = (e?: React.MouseEvent) => {
     e?.stopPropagation();
-    setCurrentBannerIndex(prev => (prev - 1 + banners.length) % banners.length);
+    setCurrentBannerIndex(prev => (prev - 1 + displayBanners.length) % displayBanners.length);
   };
 
-  const currentSeries = banners.length > 0 ? banners[currentBannerIndex] : seriesData[0];
+  const currentSeries = displayBanners[currentBannerIndex] || displayBanners[0] || defaultStaticBanners[0];
 
   // SEARCH MODE
   if (searchQuery) {
@@ -652,12 +667,12 @@ const HomeView = ({
       serie.id !== "serie-charm-school" && (
       normalizeString(serie.title).includes(query) ||
       normalizeString(serie.description).includes(query) ||
-      serie.tags.some(tag => normalizeString(tag).includes(query)) ||
+      (serie.tags || []).some(tag => normalizeString(tag).includes(query)) ||
       (serie.cast && serie.cast.some(actor => normalizeString(actor).includes(query))) ||
-      serie.seasons.some(season => 
-        season.episodes.some(ep => 
-          normalizeString(ep.title).includes(query) || 
-          normalizeString(ep.description).includes(query)
+      (serie.seasons || []).some(season => 
+         (season.episodes || []).some(ep => 
+           normalizeString(ep.title).includes(query) ||
+           normalizeString(ep.description).includes(query)
         )
       ))
     );
@@ -707,7 +722,7 @@ const HomeView = ({
         style={{ maxWidth: '2880px' }}
       >
         <div className="hidden md:block w-full relative">
-          {/* We need a hidden spacer image to define the natural height of the container since children are absolute */}
+          {/* Spacer */}
           <picture className="w-full h-auto block invisible pointer-events-none">
             <source media="(max-width: 768px)" srcSet={currentSeries.mobileBannerImage || currentSeries.coverImage || undefined} />
             <img 
@@ -716,10 +731,9 @@ const HomeView = ({
               className="w-full h-auto"
             />
           </picture>
-
           <AnimatePresence initial={false} mode="popLayout">
             <motion.div 
-              key={currentSeries.id}
+              key={currentSeries.id || currentBannerIndex}
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
@@ -736,11 +750,14 @@ const HomeView = ({
                   />
                 </picture>
                 
-                <div className="absolute inset-0 flex flex-col justify-start items-start p-6 pt-12 md:p-16 md:pt-20 lg:pt-24 z-10">
-                  <div className="max-w-2xl relative drop-shadow-[0_10px_20px_rgba(0,0,0,0.8)]">
+                {/* Degradado superpuesto para texto */}
+                <div className="absolute inset-x-0 bottom-0 h-64 bg-gradient-to-t from-black via-black/40 to-transparent z-[5]" />
+                
+                <div className="absolute inset-0 flex flex-col justify-end p-16 pb-20 z-10">
+                  <div className="max-w-2xl relative">
                     <motion.div
-                      initial={{ y: 10, opacity: 0 }}
-                      animate={{ y: 0, opacity: 1 }}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.2, duration: 0.4 }}
                     >
                       {currentSeries.logoUrl ? (
@@ -766,12 +783,16 @@ const HomeView = ({
                             <span className="text-white">{String((currentSeries as any).bannerCustomText)}</span>
                          ) : (
                            <>
-                             <span>{currentSeries.year}</span>
+                             <span>{currentSeries.year || '2000'}</span>
                              <span>•</span>
-                             <span>{currentSeries.genre}</span>
+                             <span>{currentSeries.genre || 'Reality'}</span>
                            </>
                          )}
                       </div>
+                      
+                      <p className="text-gray-300 text-sm md:text-base line-clamp-2 md:line-clamp-3 mt-4 mb-6 font-inter font-medium leading-relaxed drop-shadow-sm max-w-xl">
+                        {currentSeries.description}
+                      </p>
                     </motion.div>
                   </div>
                 </div>
@@ -788,6 +809,7 @@ const HomeView = ({
           />
 
           {/* Bottom UI inside card */}
+          <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black via-black/40 to-transparent z-[5]" />
           <div className="absolute inset-x-0 bottom-0 p-5 pb-8 flex flex-col items-center justify-end z-10 h-full">
             {/* Logo */}
             {(currentSeries.mobileLogoUrl || currentSeries.logoUrl) && (
@@ -805,9 +827,9 @@ const HomeView = ({
                  <span>{String((currentSeries as any).bannerCustomText)}</span>
                ) : (
                  <>
-                   <span>{currentSeries.year}</span>
+                   <span>{currentSeries.year || '2000'}</span>
                    <span>•</span>
-                   <span>{currentSeries.genre}</span>
+                   <span>{currentSeries.genre || 'Reality'}</span>
                  </>
                )}
             </div>
@@ -819,8 +841,8 @@ const HomeView = ({
                   onClick={(e) => { e.stopPropagation(); onSeriesClick(seriesData.find(s => s.id === currentSeries.id) || currentSeries); }}
                   className="flex-1 bg-white text-black font-inter font-black py-4 rounded-xl flex items-center justify-center gap-2 text-[15px] active:scale-95 transition-transform shadow-lg"
                 >
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.14v13.72l11-6.86L8 5.14z"/></svg>
-                  Próximamente
+                  <Play size={20} className="fill-black" />
+                  PRÓXIMAMENTE
                 </button>
               ) : (
                 <>
@@ -828,62 +850,54 @@ const HomeView = ({
                     onClick={(e) => { e.stopPropagation(); onSeriesClick(seriesData.find(s => s.id === currentSeries.id) || currentSeries); }}
                     className="flex-[3] bg-white text-black font-inter font-black py-4 rounded-xl flex items-center justify-center gap-2 text-[15px] active:scale-95 transition-transform shadow-lg"
                   >
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.14v13.72l11-6.86L8 5.14z"/></svg>
-                    Reproducir
+                    <Play size={20} className="fill-black" />
+                    REPRODUCIR
                   </button>
                   <button 
                     onClick={(e) => { e.stopPropagation(); onToggleFav(e, currentSeries.id); }}
                     className="flex-[2] bg-[#2a2a2a]/60 text-white font-inter font-black py-4 rounded-xl flex items-center justify-center gap-2 text-[15px] backdrop-blur-md border border-white/10 active:scale-95 transition-transform shadow-md"
                   >
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                    Mi lista
+                    {favorites.includes(currentSeries.id) ? (
+                      <Check size={20} />
+                    ) : (
+                      <Plus size={20} />
+                    )}
+                    MI LISTA
                   </button>
                 </>
               )}
             </div>
           </div>
         </div>
-
-        {/* Logo Reality Vault */}
-        <div className="absolute top-4 right-4 md:top-auto md:bottom-6 md:right-6 z-20 pointer-events-none">
-          <img 
-            src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgMJ-pH_Y36jVEiqf37tJlAcWHHe17x0TrhCYFAsEdaxUgvfRk1nuuLa8hFdegCm2eXFXD2KcDNexTGzttQFJzMz9VJhVnrww8jKxKXqG3cWWNadkJ9xeNJm5Q5ZRWJrfkdILtrBRHCYHf9BzEVcJdYzdYtSqW0hfQaq8jpLlqAlCaQ7ZzJIisUk164XhA/s1684/REALITY%20VAULT%20LOGO%20tr.png" 
-            alt="Reality Vault Logo" 
-            className="h-4 md:h-6 w-auto opacity-80 drop-shadow-md"
-            referrerPolicy="no-referrer"
-          />
-        </div>
-
+        
         {/* Controles del Carrusel */}
-        {banners.length > 1 && (
+        {displayBanners.length > 1 && (
           <>
             <button 
               onClick={prevBanner}
-              className="absolute left-2 md:left-4 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/20 hover:bg-pink-500/50 text-white backdrop-blur-md transition-all opacity-0 group-hover:opacity-100 border border-white/20 z-20"
+              className="absolute left-4 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/20 hover:bg-black/60 text-white backdrop-blur-sm transition-all opacity-0 group-hover:opacity-100 hidden md:block z-20"
             >
               <ChevronLeft size={32} />
             </button>
-            
             <button 
               onClick={nextBanner}
-              className="absolute right-2 md:right-4 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/20 hover:bg-pink-500/50 text-white backdrop-blur-md transition-all opacity-0 group-hover:opacity-100 border border-white/20 z-20"
+              className="absolute right-4 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/20 hover:bg-black/60 text-white backdrop-blur-sm transition-all opacity-0 group-hover:opacity-100 hidden md:block z-20"
             >
               <ChevronRight size={32} />
             </button>
-
+            
             {/* Indicadores (Puntos) */}
             <div className="absolute bottom-2 md:bottom-10 right-1/2 translate-x-1/2 flex gap-2 z-20">
-              {banners.map((_, idx) => (
+              {displayBanners.map((_, idx) => (
                 <button
                   key={idx}
                   onClick={(e) => { e.stopPropagation(); setCurrentBannerIndex(idx); }}
-                  className={`w-2 h-2 rounded-full transition-all shadow-sm backdrop-blur-sm ${idx === currentBannerIndex ? 'bg-white w-4' : 'bg-white/40 hover:bg-white/80'}`}
+                  className={`transition-all duration-300 rounded-full ${currentBannerIndex === idx ? 'w-6 md:w-8 h-2 md:h-2.5 bg-pink-500' : 'w-2 md:w-2.5 h-2 md:h-2.5 bg-white/40 hover:bg-white/60'}`}
                 />
               ))}
             </div>
           </>
         )}
-
       </div>
 
       {/* Sección Favoritos (Mi Lista) */}
@@ -900,66 +914,38 @@ const HomeView = ({
                 <WideSeriesCardSkeleton key={`fav-skeleton-${i}`} />
               ))
             ) : (
-              favoriteSeries.map(serie => {
-                const totalEpisodes = serie.seasons.reduce((acc, season) => acc + season.episodes.length, 0);
-                const watchedCount = serie.seasons.reduce((acc, season) => {
-                  return acc + season.episodes.filter(ep => watchedEpisodes.includes(ep.id)).length;
-                }, 0);
-                const progressPercent = totalEpisodes > 0 ? (watchedCount / totalEpisodes) * 100 : 0;
-                const isStartedButNotFinished = watchedCount > 0 && watchedCount < totalEpisodes;
-
-                return (
-                  <div 
-                    key={serie.id} 
-                    onClick={() => onSeriesClick(serie)}
-                    className="aspect-[16/9] cursor-pointer group/card relative"
-                  >
-                     <div className="w-full h-full rounded-xl overflow-hidden shadow-lg transition-all duration-300 transform hover:scale-105 ring-2 ring-transparent hover:ring-white ring-offset-2 ring-offset-transparent relative">
-                        <img 
-                          src={serie.wideImage || `https://placehold.co/800x449/FF00FF/FFFFFF/png?text=${encodeURIComponent(serie.title)}` || undefined}
-                          alt={serie.title} 
-                          className="w-full h-full object-cover"
-                          referrerPolicy="no-referrer"
-                        />
-                        {/* Botón Fav (para quitar) */}
-                        <motion.button 
-                          key={`fav-remove-${serie.id}`}
-                          onClick={(e) => { e.stopPropagation(); onToggleFav(e, serie.id); }}
-                          whileHover={{ scale: 1.2 }}
-                          whileTap={{ scale: 0.8 }}
-                          className="absolute top-2 right-2 bg-black/40 hover:bg-pink-500 text-white rounded-full p-2 transition-all z-30"
-                        >
-                            <Heart size={16} className="text-pink-500 fill-current" />
-                        </motion.button>
-                        
-                        {/* Progress Bar */}
-                        {isStartedButNotFinished && (
-                          <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-gray-800/80 backdrop-blur-sm z-20">
-                            <div 
-                              className="h-full bg-[#e30119] shadow-[0_0_10px_rgba(227,1,25,0.8)] transition-all duration-500" 
-                              style={{ width: `${progressPercent}%` }}
-                            />
-                          </div>
-                        )}
-                     </div>
+              favoriteSeries.map(serie => (
+                <div 
+                  key={serie.id} 
+                  onClick={() => onSeriesClick(serie)}
+                  className="aspect-[16/9] cursor-pointer group/card relative"
+                > 
+                  <div className="w-full h-full rounded-xl overflow-hidden shadow-lg transition-all duration-300 transform hover:scale-105 ring-2 ring-transparent hover:ring-white ring-offset-2 ring-offset-transparent">
+                    <img 
+                      src={serie.wideImage || `https://placehold.co/800x449/FF00FF/FFFFFF/png?text=${encodeURIComponent(serie.title)}`}
+                      alt={serie.title} 
+                      className="w-full h-full object-cover"
+                    />
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); onToggleFav(e, serie.id); }}
+                      className="absolute top-2 right-2 bg-black/40 hover:bg-pink-500 text-white rounded-full p-2 transition-all z-30"
+                    >
+                      <Heart size={16} className="text-pink-500 fill-current" />
+                    </button>
                   </div>
-                );
-              })
+                </div>
+              ))
             )}
           </div>
         </div>
       )}
 
-      {/* Catálogo Retro - Horizontal Slider */}
-      <div className="w-full px-4 md:px-12 mt-8 md:mt-12">
-        <div className="flex items-center justify-between mb-2 md:mb-4">
-          <h2 className="font-gravity text-xl md:text-2xl font-bold text-purple-600 dark:text-purple-400 flex items-center gap-2 drop-shadow-sm">
-            <Tv className="w-5 h-5 md:w-7 md:h-7" />
-            Reality
-          </h2>
-          <div className="hidden md:block h-1 flex-1 bg-gradient-to-r from-purple-300 to-transparent dark:from-purple-900 ml-6 rounded-full opacity-50"></div>
-        </div>
-
+      {/* Retro Series - Horizontal Slider */}
+      <div className="w-full px-4 md:px-12 mt-8 md:mt-12" id="series-section">
+        <h2 className="font-gravity text-xl md:text-2xl font-bold text-white mb-2 md:mb-4 pl-3 border-l-4 border-pink-500 drop-shadow-sm">
+          Años 2000s (Retro)
+        </h2>
+        
         <div className="relative group/slider">
           <div className="flex overflow-x-auto gap-2 md:gap-6 py-4 md:py-6 px-2 md:px-4 snap-x snap-mandatory scroll-smooth no-scrollbar">
             {isLoadingSeries ? (
@@ -970,7 +956,7 @@ const HomeView = ({
               ))
             ) : (
               retroSeries.map((serie) => (
-                <div key={serie.id} className="min-w-[150px] w-[150px] md:min-w-[240px] md:w-[240px] snap-center">
+                <div key={serie.id} className="min-w-[150px] w-[150px] md:min-w-[240px] md:w-[240px] snap-center shrink-0">
                   <SeriesCard 
                     serie={serie} 
                     isFav={favorites.includes(serie.id)}
@@ -984,48 +970,15 @@ const HomeView = ({
         </div>
       </div>
 
-      {/* Top 3 Series Más Vistas */}
-      <div className="w-full px-4 md:px-12 mt-8 md:mt-12">
-        <div className="flex items-center justify-between mb-2 md:mb-4">
-          <h2 className="font-gravity text-xl md:text-2xl font-bold text-pink-600 dark:text-pink-400 flex items-center gap-2 drop-shadow-sm">
-            <TrendingUp className="w-5 h-5 md:w-7 md:h-7" />
-            Top 3 Más Vistas
-          </h2>
-          <div className="hidden md:block h-1 flex-1 bg-gradient-to-r from-pink-300 to-transparent dark:from-pink-900 ml-6 rounded-full opacity-50"></div>
-        </div>
-
-        <div className="relative group/slider">
-          <div className="flex overflow-x-auto gap-2 md:gap-6 py-4 md:py-6 px-2 md:px-4 snap-x snap-mandatory scroll-smooth no-scrollbar">
-            {topSeriesData.map((topItem, index) => {
-              const serie = seriesData.find(s => s.id === topItem.id);
-              if (!serie) return null;
-              return (
-                <div key={`top-${index}`} className="min-w-[150px] w-[150px] md:min-w-[240px] md:w-[240px] snap-center">
-                  <SeriesCard 
-                    serie={serie} 
-                    isFav={favorites.includes(serie.id)}
-                    onToggleFav={(e) => onToggleFav(e, serie.id)}
-                    onClick={() => onSeriesClick(serie)}
-                    overlayImage={topItem.topImage}
-                  />
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-
       {/* Próximamente - Horizontal Slider */}
       {(isLoadingSeries || comingSoonSeries.length > 0) && (
         <div className="w-full px-4 md:px-12 pb-8">
           <div className="flex items-center justify-between mb-2 md:mb-4">
             <h2 className="font-gravity text-xl md:text-2xl font-bold text-blue-600 dark:text-blue-400 flex items-center gap-2 drop-shadow-sm">
-              <Sparkles className="w-5 h-5 md:w-7 md:h-7" />
-              Próximamente
+              <Zap className="w-5 h-5 md:w-6 md:h-6" /> Próximamente
             </h2>
-            <div className="hidden md:block h-1 flex-1 bg-gradient-to-r from-blue-300 to-transparent dark:from-blue-900 ml-6 rounded-full opacity-50"></div>
           </div>
-
+          
           <div className="relative group/slider">
             <div className="flex overflow-x-auto gap-3 md:gap-6 py-4 md:py-6 px-2 md:px-4 snap-x snap-mandatory scroll-smooth no-scrollbar">
               {isLoadingSeries ? (
@@ -1039,54 +992,33 @@ const HomeView = ({
                   <div 
                     key={serie.id} 
                     onClick={() => onSeriesClick(serie)}
-                    className="min-w-[240px] md:min-w-[320px] lg:min-w-[400px] aspect-[16/9] snap-center cursor-pointer group/card relative"
-                  >
-                     <div className="w-full h-full rounded-xl overflow-hidden shadow-lg transition-all duration-300 transform hover:scale-105 ring-2 ring-transparent hover:ring-white ring-offset-2 ring-offset-transparent">
-                        <img 
-                          src={serie.wideImage || `https://placehold.co/800x449/0000FF/FFFFFF/png?text=${encodeURIComponent(serie.title)}` || undefined}
-                          alt={serie.title} 
-                          className="w-full h-full object-cover"
-                          referrerPolicy="no-referrer"
-                        />
-                        {/* Badge Próximamente */}
-                        <div className="absolute bottom-4 left-4 z-20">
-                          <span className="bg-blue-600 text-white text-xs md:text-sm font-bold px-4 py-1.5 rounded-full shadow-lg">
-                            Próximamente
-                          </span>
-                        </div>
-                     </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-    </div>
-  );
-};
+                    className="min-w-[240px] md:min-w-[320px] lg:min-w-[400px] aspect-[16/9] snap-center shrink-0 cursor-pointer group/card relative rounded-xl overflow-hidden shadow-lg border-2 border-blue-500/30 hover:border-blue-400 transition-all duration-300"
+                  > 
+                     <div className="w-full h-full relative">                        <div className="absolute inset-0 bg-gradient-to-t from-[#0e0e0e] via-[#0e0e0e]/20 to-transparent z-10" />                        <img                           src={serie.wideImage || `https://placehold.co/800x449/2563eb/FFFFFF/png?text=${encodeURIComponent(serie.title)}`}                          alt={serie.title}                           className="w-full h-full object-cover"                          referrerPolicy="no-referrer"                        />                        {/* Badge Próximamente */}                        <div className="absolute bottom-4 left-4 z-20">                          <span className="bg-blue-600 text-white text-xs md:text-sm font-bold px-4 py-1.5 rounded-full shadow-lg">                            Próximamente                          </span>                        </div>                     </div>                  </div>                ))              )}            </div>          </div>        </div>      )}    </div>  );};
 
 // ==========================================
 // APLICACIÓN PRINCIPAL
 // ==========================================
 
 function App() {
-  const { seriesData, appConfig } = useAppContext();
+  const { appConfig } = useAppContext();
   // ESTADOS
   const { user, logout, updateUserData, loading: authLoading } = useAuth();
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'signup' | 'forgot'>('login');
   const [loading, setLoading] = useState(false);
 
-  const [isFetchingSeries, setIsFetchingSeries] = useState(true);
+  const [liveSeries, setLiveSeries] = useState<Series[]>([]);
+  const [liveBanners, setLiveBanners] = useState<any[]>([]);
+  const [isDataLoading, setIsDataLoading] = useState(true);
+
   const [view, setView] = useState<'home' | 'series' | 'watch' | 'my-list' | 'admin'>('home');
   
   // Favoritos (IDs)
   const [favorites, setFavorites] = useState<string[]>([]);
   
   // Derivada: Lista de Series favoritas
-  const favoriteSeries = React.useMemo(() => seriesData.filter(s => favorites.includes(s.id)), [favorites]);
+  const favoriteSeries = React.useMemo(() => liveSeries.filter(s => favorites.includes(s.id)), [liveSeries, favorites]);
   
   // Datos seleccionados
   const [selectedSeries, setSelectedSeries] = useState<Series | null>(null);
@@ -1121,6 +1053,37 @@ function App() {
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   useEffect(() => {
+    let seriesLoaded = false;
+    let bannersLoaded = false;
+
+    const checkLoading = () => {
+      if (seriesLoaded && bannersLoaded) setIsDataLoading(false);
+    };
+
+    const unsubscribeSeries = onSnapshot(collection(db, 'series'), (snapshot) => {
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Series));
+      data.sort((a, b) => (a.order || 0) - (b.order || 0));
+      setLiveSeries(data);
+      seriesLoaded = true;
+      checkLoading();
+    });
+
+    const unsubscribeBanners = onSnapshot(collection(db, 'heroBanners'), (snapshot) => {
+      const bannerData = snapshot.docs.map(doc => ({ id: doc.id, ...(doc.data() as any) }));
+      const visibleBanners = bannerData.filter(b => b.isVisible !== false);
+      visibleBanners.sort((a: any, b: any) => (a.order ?? 0) - (b.order ?? 0));
+      setLiveBanners(visibleBanners);
+      bannersLoaded = true;
+      checkLoading();
+    });
+
+    return () => {
+      unsubscribeSeries();
+      unsubscribeBanners();
+    };
+  }, []);
+
+  useEffect(() => {
     const handleFullscreenChange = () => {
       setIsFullscreen(!!document.fullscreenElement);
     };
@@ -1139,8 +1102,9 @@ function App() {
   };
 
   useEffect(() => {
+    if (isDataLoading) return;
     // Preload Images
-    const imagesToLoad = seriesData.flatMap(s => [s.coverImage, s.bannerImage, s.mobileBannerImage, s.logoUrl].filter(Boolean)) as string[];
+    const imagesToLoad = liveSeries.flatMap(s => [s.coverImage, s.bannerImage, s.mobileBannerImage, s.logoUrl].filter(Boolean)) as string[];
     imagesToLoad.forEach(src => {
       const img = new Image();
       img.src = src;
@@ -1153,8 +1117,6 @@ function App() {
       setFavorites([]);
       setWatchedEpisodes([]);
     }
-    
-    setIsFetchingSeries(false);
   }, [user]);
 
   // --- HANDLERS ---
@@ -1243,7 +1205,7 @@ function App() {
       return;
     }
     const targetSeries = series.id.includes("extra") 
-      ? seriesData.find(s => s.id === series.id.replace("-extra", "")) || series 
+      ? liveSeries.find(s => s.id === series.id.replace("-extra", "")) || series 
       : series;
     setSelectedSeries(targetSeries);
     setIsAboutExpanded(false); // Resetear estado de "Leer más"
@@ -1306,10 +1268,11 @@ function App() {
 
   const renderSeriesDetail = () => {
     if (!selectedSeries) return null;
+    const currentLiveSeries = liveSeries.find(s => s.id === selectedSeries.id) || selectedSeries;
 
     return (
       <SeriesDetailView 
-        selectedSeries={selectedSeries}
+        selectedSeries={currentLiveSeries}
         favorites={favorites}
         toggleFavorite={toggleFavorite}
         handleBackToHome={handleBackToHome}
@@ -1790,8 +1753,9 @@ function App() {
             onSeriesClick={handleSeriesClick} 
             searchQuery={searchQuery} 
             onGifClick={() => setIsGifModalOpen(true)}
-            isLoadingSeries={isFetchingSeries}
-            seriesData={seriesData}
+            isLoadingSeries={isDataLoading}
+            seriesData={liveSeries}
+            heroBanners={liveBanners}
           />
         )}
         {view === 'series' && renderSeriesDetail()}

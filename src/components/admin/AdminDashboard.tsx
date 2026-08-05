@@ -25,7 +25,7 @@ import { db } from '../../../firebase';
 import { collection, getDocs, doc, setDoc, writeBatch, onSnapshot, deleteDoc } from 'firebase/firestore';
 import { Series, Episode, Season, AppConfig } from '../../../types';
 import { SERIES_DATA, MARQUEE_TEXT, SOCIAL_LINKS } from '../../../constants';
-import { uploadImageToStorage } from '../../utils/firebaseStorage';
+import { uploadToCloudinary } from '../../utils/cloudinary';
 
 import {
   DndContext,
@@ -795,6 +795,16 @@ const BannerEditor = ({ banner, onBack }: { banner: any, onBack: () => void }) =
           </div>
 
           <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Top Badge (Arriba del título)</label>
+            <input type="text" value={formData.topBadge || ''} onChange={e => setFormData({...formData, topBadge: e.target.value})} placeholder="Ej: Nueva Temporada" className="w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 focus:outline-none focus:border-[#5500bd] text-sm text-slate-900" />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Feature Badges (Separados por coma)</label>
+            <input type="text" value={(formData.featureBadges || []).join(', ')} onChange={e => setFormData({...formData, featureBadges: e.target.value.split(',').map(s => s.trim()).filter(Boolean)})} placeholder="Ej: HD, CC, 16+" className="w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 focus:outline-none focus:border-[#5500bd] text-sm text-slate-900" />
+          </div>
+
+          <div>
             <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Texto Customizado (Pie)</label>
             <textarea value={formData.customText || ''} onChange={e => setFormData({...formData, customText: e.target.value})} className="w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 focus:outline-none focus:border-[#5500bd] text-sm text-slate-900 resize-none h-20" />
           </div>
@@ -914,6 +924,30 @@ const SeriesEditor = ({ serie, onBack }: { serie: Series, onBack: () => void }) 
                   type="text" 
                   value={formData.tags.join(', ')} 
                   onChange={e => setFormData({...formData, tags: e.target.value.split(',').map(t => t.trim())})} 
+                  className="w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 focus:outline-none focus:border-pink-500 text-sm text-slate-900" 
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Top Badge</label>
+                <input 
+                  type="text" 
+                  value={formData.topBadge || ''} 
+                  onChange={e => setFormData({...formData, topBadge: e.target.value})} 
+                  placeholder="Ej: Con doblaje"
+                  className="w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 focus:outline-none focus:border-pink-500 text-sm text-slate-900" 
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Feature Badges (Por coma)</label>
+                <input 
+                  type="text" 
+                  value={(formData.featureBadges || []).join(', ')} 
+                  onChange={e => setFormData({...formData, featureBadges: e.target.value.split(',').map(t => t.trim()).filter(Boolean)})} 
+                  placeholder="Ej: HD, CC, 16+"
                   className="w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 focus:outline-none focus:border-pink-500 text-sm text-slate-900" 
                 />
               </div>
@@ -1077,14 +1111,15 @@ const SeriesEditor = ({ serie, onBack }: { serie: Series, onBack: () => void }) 
                   <div className="aspect-[4/3] bg-slate-100">
                     <img src={img.url} alt="Gallery item" className="w-full h-full object-cover" />
                   </div>
-                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-between p-2">
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-between p-2">
                     <button 
                       onClick={() => {
                         const newGallery = [...(formData.gallery || [])];
                         newGallery.splice(idx, 1);
                         setFormData({...formData, gallery: newGallery});
                       }}
-                      className="self-end bg-red-500 text-white p-1.5 rounded-lg hover:bg-red-600 transition-colors"
+                      className="self-end text-white p-1.5 rounded-lg transition-colors shadow-lg"
+                      style={{ backgroundColor: '#f6042e' }}
                     >
                       <Trash2 size={14} />
                     </button>
@@ -1097,7 +1132,7 @@ const SeriesEditor = ({ serie, onBack }: { serie: Series, onBack: () => void }) 
                         setFormData({...formData, gallery: newGallery});
                       }}
                       placeholder="Tag (ej. Promo)"
-                      className="w-full bg-white/90 text-slate-900 text-[10px] font-bold px-2 py-1 rounded focus:outline-none"
+                      className="w-full bg-black/60 text-white text-[10px] font-bold px-2 py-1.5 rounded focus:outline-none focus:ring-1 focus:ring-white border border-white/20 backdrop-blur-md"
                     />
                   </div>
                 </div>
@@ -1108,19 +1143,24 @@ const SeriesEditor = ({ serie, onBack }: { serie: Series, onBack: () => void }) 
                 <input 
                   type="file" 
                   accept="image/*"
+                  multiple
                   className="absolute inset-0 opacity-0 cursor-pointer"
                   onChange={async (e) => {
-                    const file = e.target.files?.[0];
-                    if (!file) return;
+                    const files = e.target.files;
+                    if (!files || files.length === 0) return;
                     try {
-                      const url = await uploadImageToStorage(file, 'gallery');
+                      const uploadPromises = Array.from(files).map(async (file: File) => {
+                        const url = await uploadToCloudinary(file);
+                        return { id: Date.now().toString() + Math.random().toString(36).substring(7), url, category: 'General' };
+                      });
+                      const newImages = await Promise.all(uploadPromises);
                       setFormData({
                         ...formData, 
-                        gallery: [...(formData.gallery || []), { id: Date.now().toString(), url, category: 'General' }]
+                        gallery: [...(formData.gallery || []), ...newImages]
                       });
                     } catch(err) {
                       console.error(err);
-                      alert('Error subiendo imagen de galería');
+                      alert('Error subiendo imágenes de galería');
                     }
                   }}
                 />
@@ -1196,11 +1236,11 @@ const ImageUploader = ({ label, url, onUpload }: { label: string, url: string, o
     if (!file) return;
     setIsUploading(true);
     try {
-      const newUrl = await uploadImageToStorage(file, 'series');
+      const newUrl = await uploadToCloudinary(file);
       onUpload(newUrl);
     } catch (err) {
       console.error(err);
-      alert('Error subiendo la imagen a Firebase Storage');
+      alert('Error subiendo la imagen a Cloudinary');
     } finally {
       setIsUploading(false);
     }
@@ -1451,7 +1491,7 @@ const SortableEpisodeCard: React.FC<{
               if (file) {
                 setIsUploading(true);
                 try {
-                  const url = await uploadImageToStorage(file, 'episodes');
+                  const url = await uploadToCloudinary(file);
                   onChange({ ...episode, thumbnail: url });
                 } catch (err) {
                   console.error(err);
