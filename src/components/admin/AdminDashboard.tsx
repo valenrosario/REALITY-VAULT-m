@@ -364,7 +364,7 @@ export const AdminDashboard = () => {
                 animate={{ opacity: 1, y: 0 }} 
                 exit={{ opacity: 0, y: -15 }}
               >
-                <BannersManager banners={banners} />
+                <BannersManager banners={banners} series={series} />
               </motion.div>
             )}
 
@@ -543,7 +543,7 @@ const SortableSeriesCard: React.FC<{ series: Series, onClick: () => void }> = ({
 // ==========================================
 // BANNERS MANAGER
 // ==========================================
-const BannersManager = ({ banners }: { banners: any[] }) => {
+const BannersManager = ({ banners, series }: { banners: any[], series: any[] }) => {
   const [editingBanner, setEditingBanner] = useState<any | null>(null);
   const [items, setItems] = useState<any[]>(banners);
 
@@ -632,7 +632,7 @@ const BannersManager = ({ banners }: { banners: any[] }) => {
   };
 
   if (editingBanner) {
-    return <BannerEditor banner={editingBanner} onBack={() => setEditingBanner(null)} />;
+    return <BannerEditor banner={editingBanner} onBack={() => setEditingBanner(null)} series={series} />;
   }
 
   return (
@@ -703,7 +703,7 @@ const SortableBannerCard: React.FC<{ banner: any, onClick: () => void }> = ({ ba
   );
 };
 
-const BannerEditor = ({ banner, onBack }: { banner: any, onBack: () => void }) => {
+const BannerEditor = ({ banner, onBack, series }: { banner: any, onBack: () => void, series: any[] }) => {
   const [formData, setFormData] = useState<any>({ isVisible: true, ...banner });
   const [isSaving, setIsSaving] = useState(false);
 
@@ -764,6 +764,20 @@ const BannerEditor = ({ banner, onBack }: { banner: any, onBack: () => void }) =
 
         <div className="bg-white/70 backdrop-blur-xl border border-slate-200 p-6 rounded-3xl space-y-4 shadow-sm">
           <h3 className="text-xl font-gravity text-[#0281c8] mb-2">Textos y Logo</h3>
+          
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Serie Vinculada (Opcional)</label>
+            <select 
+              value={formData.seriesId || ''} 
+              onChange={e => setFormData({...formData, seriesId: e.target.value})}
+              className="w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 focus:outline-none focus:border-[#5500bd] text-sm text-slate-900"
+            >
+              <option value="">Ninguna (Banner estático)</option>
+              {series.map(s => (
+                <option key={s.id} value={s.id}>{s.title}</option>
+              ))}
+            </select>
+          </div>
           
           <div>
             <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Tamaño del Logo</label>

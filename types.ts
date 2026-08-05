@@ -59,6 +59,7 @@ export interface Series {
 export interface HeroBanner {
   id: string;
   order?: number;
+  seriesId?: string;
   desktopImage: string;
   mobileImage: string;
   logoUrl?: string;
@@ -71,7 +72,6 @@ export interface HeroBanner {
   topBadge?: string;
   featureBadges?: string[];
   bannerCustomText?: string;
-  isVisible?: boolean;
   isThirdBanner?: boolean;
   isFourthBanner?: boolean;
 }

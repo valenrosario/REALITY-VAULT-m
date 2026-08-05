@@ -183,7 +183,7 @@ const SeasonSlider = ({ season, activeEpisode, onEpisodeClick, user, isComingSoo
         ref={scrollContainerRef}
         className="flex overflow-x-auto pt-4 pb-8 gap-4 snap-x snap-mandatory scroll-smooth px-4 no-scrollbar"
       >
-        {season.episodes.map((ep: Episode) => {
+        {(season.episodes || []).map((ep: Episode) => {
           const isActive = activeEpisode?.id === ep.id;
           const isWatched = watchedEpisodes?.includes(ep.id);
           const isEpComingSoon = ep.isComingSoon || isComingSoon;
@@ -601,7 +601,16 @@ const HomeView = ({
     } as any
   ];
 
-  const activeLiveBanners = heroBanners ? heroBanners.filter((b: any) => b.isVisible !== false) : [];
+  const activeLiveBanners = heroBanners ? heroBanners.filter((b: any) => {
+    if (b.isVisible === false) return false;
+    return Boolean(
+      (typeof b.desktopImage === 'string' && b.desktopImage.trim()) ||
+      (typeof b.bannerImage === 'string' && b.bannerImage.trim()) ||
+      (typeof b.coverImage === 'string' && b.coverImage.trim()) ||
+      (typeof b.mobileImage === 'string' && b.mobileImage.trim()) ||
+      (typeof b.mobileBannerImage === 'string' && b.mobileBannerImage.trim())
+    );
+  }) : [];
   const displayBanners = activeLiveBanners.length > 0 ? activeLiveBanners : defaultStaticBanners;
 
   const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
@@ -714,23 +723,22 @@ const HomeView = ({
     <div className="pb-12 fade-in relative">
       {/* Hero Carousel Dinámico */}
       <div 
-        onClick={() => onSeriesClick(seriesData.find(s => s.id === currentSeries.id) || currentSeries)}
+        onClick={(e) => {
+          e?.stopPropagation();
+          if (currentSeries.seriesId) {
+            const linkedSeries = seriesData.find(s => s.id === currentSeries.seriesId);
+            if (linkedSeries) onSeriesClick(linkedSeries);
+          } else if (currentSeries.id && currentSeries.id.startsWith('serie-')) {
+            onSeriesClick(seriesData.find(s => s.id === currentSeries.id) || currentSeries);
+          }
+        }}
         onTouchStart={onTouchStartBanner}
         onTouchMove={onTouchMoveBanner}
         onTouchEnd={onTouchEndBanner}
-        className="relative w-full overflow-hidden mx-auto max-w-none group transition-all duration-300 cursor-pointer bg-black"
+        className="relative w-full overflow-hidden mx-auto max-w-none group transition-all duration-300 cursor-pointer bg-black min-h-[65vh] md:min-h-[75vh] flex items-center"
         style={{ maxWidth: '2880px' }}
       >
-        <div className="hidden md:block w-full relative">
-          {/* Spacer */}
-          <picture className="w-full h-auto block invisible pointer-events-none">
-            <source media="(max-width: 768px)" srcSet={currentSeries.mobileBannerImage || currentSeries.coverImage || undefined} />
-            <img 
-              src={currentSeries.bannerImage || currentSeries.coverImage || undefined} 
-              alt="Spacer" 
-              className="w-full h-auto"
-            />
-          </picture>
+        <div className="hidden md:block w-full relative min-h-[65vh] md:min-h-[75vh]">
           <AnimatePresence initial={false} mode="popLayout">
             <motion.div 
               key={currentSeries.id || currentBannerIndex}
@@ -740,18 +748,17 @@ const HomeView = ({
               transition={{ duration: 0.8, ease: "easeOut" }}
               className="absolute inset-0 w-full h-full"
             >
-                <picture className="w-full h-auto block">
-                  <source media="(max-width: 768px)" srcSet={currentSeries.mobileBannerImage || currentSeries.coverImage || undefined} />
+                <picture className="absolute inset-0 w-full h-full block">
+                  <source media="(max-width: 768px)" srcSet={currentSeries.mobileImage || currentSeries.mobileBannerImage || currentSeries.coverImage || undefined} />
                   <img 
-                    src={currentSeries.bannerImage || currentSeries.coverImage || undefined} 
+                    src={currentSeries.desktopImage || currentSeries.bannerImage || currentSeries.coverImage || undefined} 
                     alt={currentSeries.title} 
-                    className="w-full h-auto block object-contain object-center"
+                    className="absolute inset-0 w-full h-full block object-cover object-center"
                     referrerPolicy="no-referrer"
                   />
                 </picture>
                 
                 {/* Degradado superpuesto para texto */}
-                <div className="absolute inset-x-0 bottom-0 h-64 bg-gradient-to-t from-black via-black/40 to-transparent z-[5]" />
                 
                 <div className="absolute inset-0 flex flex-col justify-end p-16 pb-20 z-10">
                   <div className="max-w-2xl relative">
@@ -801,15 +808,14 @@ const HomeView = ({
         </div>
 
         {/* Mobile Version - 1080x1440 Poster aspect ratio */}
-        <div className="md:hidden w-full relative aspect-[2/3] overflow-hidden">
+        <div className="md:hidden w-full relative min-h-[65vh] overflow-hidden">
           <img 
-            src={currentSeries.mobileBannerImage || currentSeries.coverImage || undefined} 
+            src={currentSeries.mobileImage || currentSeries.mobileBannerImage || currentSeries.coverImage || undefined} 
             alt={currentSeries.title} 
             className="absolute inset-0 w-full h-full object-cover"
           />
 
           {/* Bottom UI inside card */}
-          <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black via-black/40 to-transparent z-[5]" />
           <div className="absolute inset-x-0 bottom-0 p-5 pb-8 flex flex-col items-center justify-end z-10 h-full">
             {/* Logo */}
             {(currentSeries.mobileLogoUrl || currentSeries.logoUrl) && (
@@ -838,7 +844,15 @@ const HomeView = ({
             <div className="flex items-center gap-3 w-full">
               {currentSeries.id === "serie-3" ? (
                 <button 
-                  onClick={(e) => { e.stopPropagation(); onSeriesClick(seriesData.find(s => s.id === currentSeries.id) || currentSeries); }}
+                  onClick={(e) => {
+                    e?.stopPropagation();
+                    if (currentSeries.seriesId) {
+                      const linkedSeries = seriesData.find(s => s.id === currentSeries.seriesId);
+                      if (linkedSeries) onSeriesClick(linkedSeries);
+                    } else if (currentSeries.id && currentSeries.id.startsWith('serie-')) {
+                      onSeriesClick(seriesData.find(s => s.id === currentSeries.id) || currentSeries);
+                    }
+                  }}
                   className="flex-1 bg-white text-black font-inter font-black py-4 rounded-xl flex items-center justify-center gap-2 text-[15px] active:scale-95 transition-transform shadow-lg"
                 >
                   <Play size={20} className="fill-black" />
@@ -847,7 +861,15 @@ const HomeView = ({
               ) : (
                 <>
                   <button 
-                    onClick={(e) => { e.stopPropagation(); onSeriesClick(seriesData.find(s => s.id === currentSeries.id) || currentSeries); }}
+                    onClick={(e) => {
+                      e?.stopPropagation();
+                      if (currentSeries.seriesId) {
+                        const linkedSeries = seriesData.find(s => s.id === currentSeries.seriesId);
+                        if (linkedSeries) onSeriesClick(linkedSeries);
+                      } else if (currentSeries.id && currentSeries.id.startsWith('serie-')) {
+                        onSeriesClick(seriesData.find(s => s.id === currentSeries.id) || currentSeries);
+                      }
+                    }}
                     className="flex-[3] bg-white text-black font-inter font-black py-4 rounded-xl flex items-center justify-center gap-2 text-[15px] active:scale-95 transition-transform shadow-lg"
                   >
                     <Play size={20} className="fill-black" />

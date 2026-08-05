@@ -128,7 +128,7 @@ const SeriesDetailView = ({
               <span className="w-1 h-1 bg-white/30 rounded-full" />
               <span>{selectedSeries.year}</span>
               <span className="w-1 h-1 bg-white/30 rounded-full" />
-              {selectedSeries.tags.slice(0, 2).map((tag, i) => (
+              {(selectedSeries.tags || []).slice(0, 2).map((tag, i) => (
                 <React.Fragment key={tag}>
                   {i > 0 && <span className="w-1 h-1 bg-white/30 rounded-full" />}
                   <span>{tag}</span>
@@ -184,7 +184,7 @@ const SeriesDetailView = ({
 
       <div className="max-w-7xl mx-auto px-4 md:px-8 pt-12 relative z-30">
         <div className="space-y-12">
-          {selectedSeries.seasons.map((season) => (
+          {(selectedSeries.seasons || []).map((season) => (
             <SeasonSlider 
               key={season.id} 
               season={season} 
@@ -209,7 +209,7 @@ const SeriesDetailView = ({
             <div className="bg-zinc-900/80 rounded-2xl md:rounded-3xl p-5 md:p-8 border border-white/5 shadow-2xl transition-all duration-300 hover:bg-zinc-800/80">
               <h4 className="font-bold text-lg md:text-xl text-white mb-1">{selectedSeries.title}</h4>
               <p className="text-xs font-bold text-pink-400 uppercase tracking-widest mb-4">
-                {selectedSeries.tags[0]}
+                {(selectedSeries.tags || [])[0]}
               </p>
               
               <div className="relative">
@@ -293,7 +293,7 @@ const SeriesDetailView = ({
             <Sparkles size={24} className="text-[#00dbef]" /> Galería
           </h3>
           <div className="columns-1 sm:columns-2 md:columns-3 gap-4 space-y-4">
-            {selectedSeries.gallery.map((img) => (
+            {(selectedSeries.gallery || []).map((img) => (
               <div 
                 key={img.id} 
                 className="relative group rounded-2xl overflow-hidden break-inside-avoid border border-white/10 cursor-pointer shadow-2xl hover:shadow-[0_0_20px_rgba(0,219,239,0.3)] transition-all duration-300"
