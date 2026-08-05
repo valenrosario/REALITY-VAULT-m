@@ -27,19 +27,21 @@ import {
   Key,
   Maximize,
   Minimize,
-  TrendingUp
+  TrendingUp,
+  LayoutDashboard
 } from 'lucide-react';
-import { SERIES_DATA, APP_NAME, APP_LOGO_URL, AVATAR_OPTIONS, SOCIAL_LINKS, MARQUEE_TEXT, SOUND_EFFECTS } from './constants';
-import { Series, Episode, AuthState, Season, User as UserType } from './types';
+import { APP_NAME, APP_LOGO_URL, AVATAR_OPTIONS, SOCIAL_LINKS, MARQUEE_TEXT, SOUND_EFFECTS } from './constants';
+import { Series, Episode, AuthState, Season, User as UserType, AppConfig } from './types';
 import SeriesDetailView from './src/components/SeriesDetailView';
 // import BlingCursor from './BlingCursor';
 import { db, auth, handleFirestoreError, OperationType } from './firebase';
-import { doc, getDoc, setDoc, updateDoc, onSnapshot } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, collection, onSnapshot } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
 import { useAuth, AuthProvider } from './src/contexts/AuthContext';
 import { LoginForm } from './src/components/auth/LoginForm';
 import { RegisterForm } from './src/components/auth/RegisterForm';
-
+import { AdminDashboard, AdminProtectedRoute } from './src/components/admin/AdminDashboard';
+import { AppProvider, useAppContext } from './src/contexts/AppContext';
 
 // ==========================================
 // COMPONENTES UI REUTILIZABLES
@@ -277,10 +279,10 @@ const MagicLoader = () => (
 );
 
 // Barra de Noticias (Marquee)
-const NewsMarquee = () => (
+const NewsMarquee = ({ text }: { text: string }) => (
   <div className="bg-[#e30119] text-white py-1.5 overflow-hidden border-b-2 border-[#e30119]/80 relative z-50 transition-colors">
     <div className="animate-marquee font-gravity text-sm font-bold tracking-widest uppercase">
-      {MARQUEE_TEXT}
+      {text}
     </div>
   </div>
 );
@@ -546,7 +548,8 @@ const topSeriesData = [
 ];
 
 // --- HOME VIEW COMPONENT ---
-const HomeView = ({ 
+const HomeView = ({
+  seriesData, 
   favorites, 
   onToggleFav, 
   onSeriesClick,
@@ -561,15 +564,16 @@ const HomeView = ({
   searchQuery: string,
   onGifClick: () => void,
   isLoadingSeries?: boolean,
-  watchedEpisodes: string[]
+  watchedEpisodes: string[],
+  seriesData: Series[]
 }) => {
-  const retroSeries = SERIES_DATA.filter(s => !s.isComingSoon && s.id !== "serie-charm-school");
-  const comingSoonSeries = SERIES_DATA.filter(s => s.isComingSoon && s.id !== "serie-charm-school");
-  const favoriteSeries = SERIES_DATA.filter(s => favorites.includes(s.id) && s.id !== "serie-charm-school");
+  const retroSeries = seriesData.filter(s => !s.isComingSoon && s.id !== "serie-charm-school");
+  const comingSoonSeries = seriesData.filter(s => s.isComingSoon && s.id !== "serie-charm-school");
+  const favoriteSeries = seriesData.filter(s => favorites.includes(s.id) && s.id !== "serie-charm-school");
   
   const banners = [
     {
-      ...SERIES_DATA.find(s => s.id === "serie-1")!,
+      ...seriesData.find(s => s.id === "serie-1")!,
       mobileBannerImage: "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEh-pXI-BYvApJ1ahhjrbrjM0QooO3dAq3pZ_PrerEQcyO9bv4k1xOI_J5oWDDZMKTkR22YI-UTdeMX75yrXi7Ru8hAUiGg8850I83A-8_hp0Pu-WwYGZCO6c6s0pkMGfoO-h7s5u3JLMJVQgUuzf0syOzbWtASlJRatRB4vGjSkqZnjqIh-5gYX3np_Qls/s2160/3.png",
       bannerImage: "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgOomfkLFt78XcgzdaNS81yWn2PjfGg83VubO4g-zB7VZ42EW5F7YoWfzV2l7px3_jf1lBAoRNACoWTYK8pRNyoZaQqWDER5GuNcW31jjbe8iDkiBR17QLIMtFkZ-mQa0_XcBu7H0lgpBF7TDjTKAG2idEa8SECFMeyg9de13orTKHNLxkZOChx7lGKpKA/s3225/cc.png",
       mobileLogoUrl: "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEh4SXg7NW32uFbjkEdyGKvnOEncgKN_UmWk497bhne7KyH_CrAlNF9xGY8BEs-cc6UumqRwxw68VRzI03ePXbWt0nJHmX1TgIVFdbBqZlVsmWvqCk3K-cKchhf1tOh4FwXX-adTsZ-21ufQIpuMGTcTNKY9fa23lbiREdQma_PET6s7PWhsiML-E4dPwBs/s352/1.png",
@@ -578,10 +582,10 @@ const HomeView = ({
       bannerText: "Segunda Temporada Disponible",
       isThirdBanner: true // Marker for custom sizing
     } as any,
-    SERIES_DATA.find(s => s.id === "serie-3")!,
-    SERIES_DATA.find(s => s.id === "serie-1")!,
+    seriesData.find(s => s.id === "serie-3")!,
+    seriesData.find(s => s.id === "serie-1")!,
     {
-      ...SERIES_DATA.find(s => s.id === "serie-2")!,
+      ...seriesData.find(s => s.id === "serie-2")!,
       mobileBannerImage: "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEiNTTC68GkkBhUfpbIVnLQeUU6VQG5rwLFd9u5i2k2QucydcVyCPsd_XJkYdaGFXDON3zXgIeRMbFxVyCIFuU3VHE4c-Ydrd2vWBD9bG_rHgMFqRDIXIWLDOsqRfs826vzEUm3Nl7gjJuVHVN4mvI8f9US-IjjiL2X4R0D0BfMHOeiFlczJwzVlygj03w0/s2160/sa.png",
       bannerImage: "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEg1kYHW8sP2GgNuuyFFgQ3bkQJnzMKlqXf1a8EB3WsUEt-9CqTPAjaBT5xcaCdtYTwEU-2jZ1wdhfJqgFRZ-koCoLuy_BX0CW3-7mOrtnqumJ4yQAKtQGEI2ehZ0z1kwwdiiiI5WLls29L7oJ-Te4D2Aonnwk4lH9LM5ttAh-0i7ufU70fqSz_ZIdh59RU/s1440/compose.png",
       mobileLogoUrl: "https://imageservice.disco.peacocktv.com/uuid/501d6b9d-7b2c-35e9-8936-0475a0661330/LOGO_TITLE_WIDE?language=eng&proposition=NBCUOTT&version=778f50c2-4e62-3788-9d20-823d3a1b15c2",
@@ -637,14 +641,14 @@ const HomeView = ({
     setCurrentBannerIndex(prev => (prev - 1 + banners.length) % banners.length);
   };
 
-  const currentSeries = banners.length > 0 ? banners[currentBannerIndex] : SERIES_DATA[0];
+  const currentSeries = banners.length > 0 ? banners[currentBannerIndex] : seriesData[0];
 
   // SEARCH MODE
   if (searchQuery) {
     const normalizeString = (str: string) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
     const query = normalizeString(searchQuery);
     
-    const filteredSeries = SERIES_DATA.filter(serie => 
+    const filteredSeries = seriesData.filter(serie => 
       serie.id !== "serie-charm-school" && (
       normalizeString(serie.title).includes(query) ||
       normalizeString(serie.description).includes(query) ||
@@ -695,7 +699,7 @@ const HomeView = ({
     <div className="pb-12 fade-in relative">
       {/* Hero Carousel Dinámico */}
       <div 
-        onClick={() => onSeriesClick(SERIES_DATA.find(s => s.id === currentSeries.id) || currentSeries)}
+        onClick={() => onSeriesClick(seriesData.find(s => s.id === currentSeries.id) || currentSeries)}
         onTouchStart={onTouchStartBanner}
         onTouchMove={onTouchMoveBanner}
         onTouchEnd={onTouchEndBanner}
@@ -812,7 +816,7 @@ const HomeView = ({
             <div className="flex items-center gap-3 w-full">
               {currentSeries.id === "serie-3" ? (
                 <button 
-                  onClick={(e) => { e.stopPropagation(); onSeriesClick(SERIES_DATA.find(s => s.id === currentSeries.id) || currentSeries); }}
+                  onClick={(e) => { e.stopPropagation(); onSeriesClick(seriesData.find(s => s.id === currentSeries.id) || currentSeries); }}
                   className="flex-1 bg-white text-black font-inter font-black py-4 rounded-xl flex items-center justify-center gap-2 text-[15px] active:scale-95 transition-transform shadow-lg"
                 >
                   <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.14v13.72l11-6.86L8 5.14z"/></svg>
@@ -821,7 +825,7 @@ const HomeView = ({
               ) : (
                 <>
                   <button 
-                    onClick={(e) => { e.stopPropagation(); onSeriesClick(SERIES_DATA.find(s => s.id === currentSeries.id) || currentSeries); }}
+                    onClick={(e) => { e.stopPropagation(); onSeriesClick(seriesData.find(s => s.id === currentSeries.id) || currentSeries); }}
                     className="flex-[3] bg-white text-black font-inter font-black py-4 rounded-xl flex items-center justify-center gap-2 text-[15px] active:scale-95 transition-transform shadow-lg"
                   >
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.14v13.72l11-6.86L8 5.14z"/></svg>
@@ -993,7 +997,7 @@ const HomeView = ({
         <div className="relative group/slider">
           <div className="flex overflow-x-auto gap-2 md:gap-6 py-4 md:py-6 px-2 md:px-4 snap-x snap-mandatory scroll-smooth no-scrollbar">
             {topSeriesData.map((topItem, index) => {
-              const serie = SERIES_DATA.find(s => s.id === topItem.id);
+              const serie = seriesData.find(s => s.id === topItem.id);
               if (!serie) return null;
               return (
                 <div key={`top-${index}`} className="min-w-[150px] w-[150px] md:min-w-[240px] md:w-[240px] snap-center">
@@ -1068,6 +1072,7 @@ const HomeView = ({
 // ==========================================
 
 function App() {
+  const { seriesData, appConfig } = useAppContext();
   // ESTADOS
   const { user, logout, updateUserData, loading: authLoading } = useAuth();
   const [isAuthOpen, setIsAuthOpen] = useState(false);
@@ -1075,13 +1080,13 @@ function App() {
   const [loading, setLoading] = useState(false);
 
   const [isFetchingSeries, setIsFetchingSeries] = useState(true);
-  const [view, setView] = useState<'home' | 'series' | 'watch' | 'my-list'>('home');
+  const [view, setView] = useState<'home' | 'series' | 'watch' | 'my-list' | 'admin'>('home');
   
   // Favoritos (IDs)
   const [favorites, setFavorites] = useState<string[]>([]);
   
   // Derivada: Lista de Series favoritas
-  const favoriteSeries = React.useMemo(() => SERIES_DATA.filter(s => favorites.includes(s.id)), [favorites]);
+  const favoriteSeries = React.useMemo(() => seriesData.filter(s => favorites.includes(s.id)), [favorites]);
   
   // Datos seleccionados
   const [selectedSeries, setSelectedSeries] = useState<Series | null>(null);
@@ -1135,7 +1140,7 @@ function App() {
 
   useEffect(() => {
     // Preload Images
-    const imagesToLoad = SERIES_DATA.flatMap(s => [s.coverImage, s.bannerImage, s.mobileBannerImage, s.logoUrl].filter(Boolean)) as string[];
+    const imagesToLoad = seriesData.flatMap(s => [s.coverImage, s.bannerImage, s.mobileBannerImage, s.logoUrl].filter(Boolean)) as string[];
     imagesToLoad.forEach(src => {
       const img = new Image();
       img.src = src;
@@ -1238,7 +1243,7 @@ function App() {
       return;
     }
     const targetSeries = series.id.includes("extra") 
-      ? SERIES_DATA.find(s => s.id === series.id.replace("-extra", "")) || series 
+      ? seriesData.find(s => s.id === series.id.replace("-extra", "")) || series 
       : series;
     setSelectedSeries(targetSeries);
     setIsAboutExpanded(false); // Resetear estado de "Leer más"
@@ -1514,6 +1519,14 @@ function App() {
     : 'bg-black/30 backdrop-blur-md border-b border-white/5 shadow-lg';
   const navTextClass = !isNavSolid ? 'text-white' : (isScrolled ? 'text-gray-800 dark:text-gray-200' : 'text-gray-800 dark:text-white');
 
+  if (view === 'admin') {
+    return (
+      <AdminProtectedRoute>
+        <AdminDashboard />
+      </AdminProtectedRoute>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-white dark:bg-[#050505] text-gray-800 dark:text-gray-100 font-sans selection:bg-pink-300 selection:text-pink-900 flex flex-col transition-colors">
       
@@ -1545,6 +1558,7 @@ function App() {
                 { name: 'Inicio', view: 'home', id: 'inicio' },
                 { name: 'Series', view: 'home', id: 'series' },
                 { name: 'Mi Lista', view: 'my-list', id: 'mi-lista' },
+                { name: 'Admin', view: 'admin', id: 'admin' },
               ].map((item, idx) => (
                 <button
                   key={idx}
@@ -1556,6 +1570,9 @@ function App() {
                         setView('my-list');
                         window.scrollTo({ top: 0, behavior: 'smooth' });
                       }
+                    } else if (item.id === 'admin') {
+                      setView('admin');
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
                     } else if (item.id === 'series') {
                       setView('home');
                       setTimeout(() => {
@@ -1673,6 +1690,13 @@ function App() {
                         Mi Lista
                       </button>
                       <button 
+                        onClick={() => { setView('admin'); window.scrollTo(0,0); }}
+                        className="w-full flex items-center gap-2 px-4 py-3 text-xs font-bold text-pink-500 hover:bg-pink-50 dark:hover:bg-pink-500/10 transition-colors"
+                      >
+                        <LayoutDashboard size={14} />
+                        Panel Admin
+                      </button>
+                      <button 
                         onClick={handleLogout}
                         className="w-full flex items-center gap-2 px-4 py-3 text-xs font-bold text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
                       >
@@ -1767,6 +1791,7 @@ function App() {
             searchQuery={searchQuery} 
             onGifClick={() => setIsGifModalOpen(true)}
             isLoadingSeries={isFetchingSeries}
+            seriesData={seriesData}
           />
         )}
         {view === 'series' && renderSeriesDetail()}
@@ -1793,7 +1818,7 @@ function App() {
           <PayPalButton />
 
           <div className="flex justify-center gap-6 mb-8 mt-6">
-            {SOCIAL_LINKS.map((link, index) => {
+            {appConfig.socialLinks.map((link, index) => {
               const icons: any = { instagram: Instagram, twitter: Twitter, tiktok: Tv, mail: Mail }; 
               const Icon = icons[link.iconName] || Mail;
               return (
@@ -1845,9 +1870,11 @@ function App() {
 
 function AppWrapped() {
   return (
-    <AuthProvider>
-      <App />
-    </AuthProvider>
+    <AppProvider>
+      <AuthProvider>
+        <App />
+      </AuthProvider>
+    </AppProvider>
   );
 }
 

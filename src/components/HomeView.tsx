@@ -1,33 +1,37 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Heart, ChevronLeft, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { SERIES_DATA, SOUND_EFFECTS } from '../../constants';
+import { SOUND_EFFECTS } from '../../constants';
 import { Series } from '../../types';
 import SeriesCard from './SeriesCard';
 
 import { playSound } from '../utils/sound';
 interface HomeViewProps {
   favorites: string[];
+  watchedEpisodes?: string[];
   onToggleFav: (e: React.MouseEvent, id: string) => void;
   onSeriesClick: (series: Series) => void;
   searchQuery: string;
   onGifClick: () => void;
+  isLoadingSeries?: boolean;
+  seriesData: Series[];
 }
 
-const HomeView = ({ 
+const HomeView = ({
+  seriesData, 
   favorites, 
   onToggleFav, 
   onSeriesClick,
   searchQuery,
   onGifClick
 }: HomeViewProps) => {
-  const favoriteSeries = SERIES_DATA.filter(s => favorites.includes(s.id) && s.id !== "serie-charm-school");
+  const favoriteSeries = seriesData.filter(s => favorites.includes(s.id) && s.id !== "serie-charm-school");
   
-  const currentSeries = SERIES_DATA[0];
+  const currentSeries = seriesData[0];
 
   if (searchQuery) {
     const query = searchQuery.toLowerCase();
-    const filteredSeries = SERIES_DATA.filter(serie => 
+    const filteredSeries = seriesData.filter(serie => 
       serie.id !== "serie-charm-school" && (
       serie.title.toLowerCase().includes(query) ||
       serie.description.toLowerCase().includes(query) ||
@@ -253,7 +257,7 @@ const HomeView = ({
           Todas las Series
         </h2>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-6">
-          {SERIES_DATA.filter(s => s.id !== "serie-charm-school").map((serie) => (
+          {seriesData.filter(s => s.id !== "serie-charm-school").map((serie) => (
             <SeriesCard 
               key={serie.id} 
               serie={serie} 

@@ -74,7 +74,7 @@ export const SERIES_DATA: Series[] = [
             duration: "22 min",
             thumbnail: "https://ichef.bbci.co.uk/images/ic/320x180/p0kbvg7n.jpg",
             description: "Paris y Nicole disfrutan de su último día de libertad antes de ser enviadas a vivir a una granja en el medio de la nada",
-            videoUrl: "https://drive.google.com/file/d/1Gao-55VIoPMmlIgJtP2WcjuR8dngg6CS/preview" 
+            videoUrl: "https://realityvault.player4me.vip/#qdagz" 
           },
           {
             id: "s1e2",

@@ -81,5 +81,12 @@ service cloud.firestore {
                       
       allow delete: if isAdmin();
     }
+    match /series/{seriesId} {
+      allow read, write: if true;
+    }
+
+    match /appConfig/{configId} {
+      allow read, write: if true;
+    }
   }
 }

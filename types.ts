@@ -1,5 +1,6 @@
 export interface Episode {
   id: string;
+  order?: number;
   title: string;
   thumbnail: string;
   videoUrl: string;
@@ -17,6 +18,7 @@ export interface Season {
 
 export interface Series {
   id: string;
+  order?: number;
   title: string;
   logoUrl?: string;
   mobileLogoUrl?: string;
@@ -72,6 +74,11 @@ export interface SocialLink {
   platform: string;
   url: string;
   iconName: string;
+}
+
+export interface AppConfig {
+  marqueeText: string;
+  socialLinks: SocialLink[];
 }
 
 export interface Sparkle {

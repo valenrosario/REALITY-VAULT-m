@@ -21,12 +21,66 @@
         }
       },
       "required": ["uid", "email", "username", "avatar"]
+    },
+    "Series": {
+      "title": "Series",
+      "description": "A streaming series",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "order": { "type": "number" },
+        "title": { "type": "string" },
+        "logoUrl": { "type": "string" },
+        "mobileLogoUrl": { "type": "string" },
+        "detailLogoUrl": { "type": "string" },
+        "coverImage": { "type": "string" },
+        "bannerImage": { "type": "string" },
+        "mobileBannerImage": { "type": "string" },
+        "wideImage": { "type": "string" },
+        "detailBannerDesktop": { "type": "string" },
+        "detailBannerMobile": { "type": "string" },
+        "description": { "type": "string" },
+        "aboutDescription": { "type": "string" },
+        "bannerText": { "type": "string" },
+        "tags": { "type": "array", "items": { "type": "string" } },
+        "cast": { "type": "array", "items": { "type": "string" } },
+        "year": { "type": "string" },
+        "genre": { "type": "string" },
+        "isComingSoon": { "type": "boolean" },
+        "isPremium": { "type": "boolean" },
+        "themeColor": { "type": "string" },
+        "studio": { "type": "string" },
+        "contentRating": { "type": "string" },
+        "regionOfOrigin": { "type": "string" },
+        "originalAudio": { "type": "string" },
+        "copyright": { "type": "string" },
+        "seasons": { "type": "array" }
+      },
+      "required": ["id", "title", "coverImage", "description", "year", "tags", "seasons"]
+    },
+    "AppConfig": {
+      "title": "App Config",
+      "description": "Global settings for the application",
+      "type": "object",
+      "properties": {
+        "marqueeText": { "type": "string" },
+        "socialLinks": { "type": "array" }
+      },
+      "required": ["marqueeText", "socialLinks"]
     }
   },
   "firestore": {
     "users/{userId}": {
       "schema": "User",
       "description": "User profile document"
+    },
+    "series/{seriesId}": {
+      "schema": "Series",
+      "description": "Series document"
+    },
+    "appConfig/{configId}": {
+      "schema": "AppConfig",
+      "description": "App configuration document"
     }
   }
 }
