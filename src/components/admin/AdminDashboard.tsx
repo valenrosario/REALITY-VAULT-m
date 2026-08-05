@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, createContext, useContext } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   LayoutDashboard, 
@@ -147,10 +147,17 @@ export const AdminProtectedRoute = ({ children }: { children: React.ReactNode })
   return <>{children}</>;
 };
 
+export const ConfirmContext = createContext<(msg: string, onConfirm: () => void) => void>(() => {});
+
 // ==========================================
 // 2. LAYOUT BASE DEL PANEL (Sidebar + Content)
 // ==========================================
 export const AdminDashboard = ({ onExit }: { onExit?: () => void }) => {
+  const [confirmModal, setConfirmModal] = useState({ isOpen: false, message: '', onConfirm: () => {} });
+  
+  const requestConfirm = (message: string, onConfirm: () => void) => {
+    setConfirmModal({ isOpen: true, message, onConfirm });
+  };
   const [activeTab, setActiveTab] = useState<'home' | 'series' | 'banners' | 'settings'>('home');
   const [series, setSeries] = useState<Series[]>([]);
   const [banners, setBanners] = useState<any[]>([]);
@@ -227,8 +234,9 @@ export const AdminDashboard = ({ onExit }: { onExit?: () => void }) => {
   };
 
   return (
-    <div className="flex h-screen bg-slate-50 text-slate-900 overflow-hidden font-sans">
-      {/* Sidebar */}
+    <ConfirmContext.Provider value={requestConfirm}>
+      <div className="flex h-screen bg-slate-50 text-slate-900 overflow-hidden font-sans">
+        {/* Sidebar */}
       <aside className="w-64 bg-white/70 backdrop-blur-xl border-r border-slate-200 flex flex-col p-6 shadow-[4px_0_24px_rgba(0,0,0,0.02)] relative z-20">
         <div className="mb-10 text-center">
           <img 
@@ -398,7 +406,42 @@ export const AdminDashboard = ({ onExit }: { onExit?: () => void }) => {
           </AnimatePresence>
         )}
       </main>
+
+      {/* Modal de Confirmación */}
+      <AnimatePresence>
+        {confirmModal.isOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white rounded-3xl p-6 md:p-8 max-w-sm w-full shadow-2xl"
+            >
+              <h3 className="text-xl font-bold text-slate-900 mb-2">¿Estás seguro?</h3>
+              <p className="text-slate-600 text-sm mb-6">{confirmModal.message}</p>
+              <div className="flex gap-3 justify-end">
+                <button
+                  onClick={() => setConfirmModal({ ...confirmModal, isOpen: false })}
+                  className="px-5 py-2.5 rounded-2xl bg-slate-100 text-slate-700 font-bold text-sm hover:bg-slate-200 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={() => {
+                    confirmModal.onConfirm();
+                    setConfirmModal({ ...confirmModal, isOpen: false });
+                  }}
+                  className="px-5 py-2.5 rounded-2xl bg-red-500 text-white font-bold text-sm hover:bg-red-600 transition-colors shadow-md"
+                >
+                  Eliminar
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
+    </ConfirmContext.Provider>
   );
 };
 
@@ -721,6 +764,7 @@ const SortableBannerCard: React.FC<{ banner: any, onClick: () => void }> = ({ ba
 };
 
 const BannerEditor = ({ banner, onBack, series }: { banner: any, onBack: () => void, series: any[] }) => {
+  const requestConfirm = useContext(ConfirmContext);
   const [formData, setFormData] = useState<any>({ isVisible: true, ...banner });
   const [isSaving, setIsSaving] = useState(false);
 
@@ -737,15 +781,15 @@ const BannerEditor = ({ banner, onBack, series }: { banner: any, onBack: () => v
     }
   };
 
-  const handleDelete = async () => {
-    if (confirm(`¿Eliminar banner?`)) {
+  const handleDelete = () => {
+    requestConfirm('¿Eliminar banner?', async () => {
       try {
         await deleteDoc(doc(db, 'heroBanners', formData.id));
         onBack();
       } catch (err) {
         console.error(err);
       }
-    }
+    });
   };
 
   return (
@@ -849,9 +893,112 @@ const BannerEditor = ({ banner, onBack, series }: { banner: any, onBack: () => v
 // 4. EDITOR DE SERIE & MODAL DE PREVISUALIZACIÓN
 // ==========================================
 const SeriesEditor = ({ serie, onBack }: { serie: Series, onBack: () => void }) => {
+  const requestConfirm = useContext(ConfirmContext);
   const [formData, setFormData] = useState<Series>(serie);
   const [isSaving, setIsSaving] = useState(false);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [isSearchingTMDB, setIsSearchingTMDB] = useState(false);
+  const [isTmdbLoading, setIsTmdbLoading] = useState(false);
+
+  useEffect(() => {
+    if (searchQuery.length > 2) {
+      setIsSearchingTMDB(true);
+      const timer = setTimeout(async () => {
+        try {
+          const apiKey = import.meta.env.VITE_TMDB_API_KEY;
+          if (!apiKey) return;
+          const res = await fetch(`https://api.themoviedb.org/3/search/tv?api_key=${apiKey}&language=es-ES&query=${encodeURIComponent(searchQuery)}`);
+          if (res.ok) {
+            const data = await res.json();
+            setSearchResults(data.results || []);
+          }
+        } catch (error) {
+          console.error(error);
+        } finally {
+          setIsSearchingTMDB(false);
+        }
+      }, 500);
+      return () => clearTimeout(timer);
+    } else {
+      setSearchResults([]);
+      setIsSearchingTMDB(false);
+    }
+  }, [searchQuery]);
+
+  const handleTmdbAutocomplete = async (idToFetch: string) => {
+    if (!idToFetch) return;
+    setIsTmdbLoading(true);
+    try {
+      const apiKey = import.meta.env.VITE_TMDB_API_KEY;
+      if (!apiKey) {
+        throw new Error("VITE_TMDB_API_KEY no está configurada");
+      }
+
+      const res = await fetch(`https://api.themoviedb.org/3/tv/${idToFetch}?api_key=${apiKey}&language=es-MX&append_to_response=content_ratings,credits`);
+      if (!res.ok) throw new Error("Serie no encontrada");
+      const data = await res.json();
+
+      const title = data.name;
+      const year = data.first_air_date ? data.first_air_date.split('-')[0] : '';
+      const description = data.overview;
+      
+      let topBadge = '';
+      if (data.content_ratings?.results) {
+        const rating = data.content_ratings.results.find((r: any) => r.iso_3166_1 === 'US' || r.iso_3166_1 === 'ES' || r.iso_3166_1 === 'MX');
+        if (rating) topBadge = rating.rating;
+      }
+      
+      const cast = data.credits?.cast?.slice(0, 3).map((c: any) => c.name).join(', ') || '';
+      const tags = data.genres?.map((g: any) => g.name) || [];
+      
+      let seasonsData: Season[] = [];
+      if (data.seasons) {
+        for (const season of data.seasons) {
+          if (season.season_number === 0) continue;
+          
+          const seasonRes = await fetch(`https://api.themoviedb.org/3/tv/${idToFetch}/season/${season.season_number}?api_key=${apiKey}&language=es-MX`);
+          if (seasonRes.ok) {
+            const seasonData = await seasonRes.json();
+            const episodes: Episode[] = seasonData.episodes?.map((ep: any) => ({
+              id: `ep-${ep.id}`,
+              title: ep.name,
+              number: ep.episode_number,
+              description: ep.overview,
+              duration: ep.runtime ? `${ep.runtime} min` : '45 min',
+              thumbnailUrl: ep.still_path ? `https://image.tmdb.org/t/p/w500${ep.still_path}` : '',
+              videoUrl: ''
+            })) || [];
+            
+            seasonsData.push({
+              id: `s-${season.season_number}`,
+              title: season.name,
+              episodes
+            });
+          }
+        }
+      }
+
+      setFormData(prev => ({
+        ...prev,
+        title: title || prev.title,
+        year: year || prev.year,
+        description: description || prev.description,
+        topBadge: topBadge || prev.topBadge,
+        cast: cast || prev.cast,
+        tags: tags.length > 0 ? tags : prev.tags,
+        seasons: seasonsData.length > 0 ? seasonsData : prev.seasons
+      }));
+      
+    } catch (err: any) {
+      console.error(err);
+      requestConfirm(`No se pudo autocompletar: ${err.message}`, () => {});
+    } finally {
+      setIsTmdbLoading(false);
+    }
+  };
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -866,8 +1013,8 @@ const SeriesEditor = ({ serie, onBack }: { serie: Series, onBack: () => void }) 
     }
   };
 
-  const handleDelete = async () => {
-    if (confirm(`¿Estás seguro de eliminar la serie "${formData.title}"?`)) {
+  const handleDelete = () => {
+    requestConfirm(`¿Estás seguro de eliminar la serie "${formData.title}"?`, async () => {
       try {
         await deleteDoc(doc(db, 'series', formData.id));
         onBack();
@@ -875,7 +1022,7 @@ const SeriesEditor = ({ serie, onBack }: { serie: Series, onBack: () => void }) 
         console.error(err);
         alert('Error al eliminar la serie');
       }
-    }
+    });
   };
 
   return (
@@ -918,6 +1065,38 @@ const SeriesEditor = ({ serie, onBack }: { serie: Series, onBack: () => void }) 
           <div className="bg-white/70 backdrop-blur-xl border border-slate-200 p-6 rounded-3xl space-y-4 shadow-sm">
             <h3 className="text-2xl font-gravity text-pink-500 mb-4">Información de la Serie</h3>
             
+            <div className="bg-pink-50 p-4 rounded-2xl border border-pink-100 relative z-50">
+              <div className="w-full relative">
+                <input 
+                  type="text" 
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  placeholder="Buscar serie en TMDB..."
+                  className="w-full bg-white border border-pink-200 rounded-xl px-4 py-3 focus:outline-none focus:border-pink-500 text-sm text-slate-900"
+                />
+                {isSearchingTMDB && <Loader2 className="absolute right-4 top-1/2 -translate-y-1/2 animate-spin text-pink-500" size={16} />}
+                {searchResults.length > 0 && (
+                  <div className="absolute top-full left-0 right-0 mt-2 bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl overflow-hidden max-h-64 overflow-y-auto">
+                    {searchResults.map(result => (
+                      <button
+                        key={result.id}
+                        type="button"
+                        onClick={() => {
+                          setSearchQuery('');
+                          setSearchResults([]);
+                          handleTmdbAutocomplete(result.id.toString());
+                        }}
+                        className="w-full text-left px-4 py-3 hover:bg-zinc-800 text-white text-sm border-b border-zinc-800/50 last:border-0 transition-colors flex justify-between items-center"
+                      >
+                        <span>{result.name}</span>
+                        <span className="text-zinc-500 text-xs">{result.first_air_date ? `(${result.first_air_date.split('-')[0]})` : ''}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Título de la Serie</label>
               <input 
@@ -1310,6 +1489,7 @@ const SeasonAccordion: React.FC<{
   onChange: (s: Season) => void,
   onDelete: () => void 
 }> = ({ season, onChange, onDelete }) => {
+  const requestConfirm = useContext(ConfirmContext);
   const [isOpen, setIsOpen] = useState(false);
   const [items, setItems] = useState<Episode[]>(season.episodes);
 
@@ -1378,7 +1558,7 @@ const SeasonAccordion: React.FC<{
             type="button"
             onClick={(e) => {
               e.stopPropagation();
-              if (confirm('¿Eliminar temporada?')) onDelete();
+              requestConfirm('¿Eliminar temporada?', () => onDelete());
             }}
             className="text-xs text-red-500 hover:text-red-600 p-1.5 rounded-lg hover:bg-red-50 transition-colors"
           >
@@ -1411,8 +1591,10 @@ const SeasonAccordion: React.FC<{
                           onChange({ ...season, episodes: newEpisodes });
                         }}
                         onDelete={() => {
-                          const newEpisodes = items.filter((_, idx) => idx !== index);
-                          onChange({ ...season, episodes: newEpisodes });
+                          requestConfirm('¿Eliminar este episodio?', () => {
+                            const newEpisodes = items.filter((_, idx) => idx !== index);
+                            onChange({ ...season, episodes: newEpisodes });
+                          });
                         }}
                       />
                     ))}

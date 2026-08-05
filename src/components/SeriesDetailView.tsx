@@ -61,34 +61,6 @@ const SeriesDetailView = ({
             />
           </div>
 
-          <div className="absolute bottom-4 right-4 md:bottom-8 md:right-8 z-30 opacity-50 hover:opacity-100 transition-opacity pointer-events-none">
-            <img 
-              src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgMJ-pH_Y36jVEiqf37tJlAcWHHe17x0TrhCYFAsEdaxUgvfRk1nuuLa8hFdegCm2eXFXD2KcDNexTGzttQFJzMz9VJhVnrww8jKxKXqG3cWWNadkJ9xeNJm5Q5ZRWJrfkdILtrBRHCYHf9BzEVcJdYzdYtSqW0hfQaq8jpLlqAlCaQ7ZzJIisUk164XhA/s1684/REALITY%20VAULT%20LOGO%20tr.png" 
-              alt="Reality Vault" 
-              className="h-4 md:h-8 w-auto object-contain drop-shadow-[0_0_5px_rgba(0,0,0,0.5)]"
-              referrerPolicy="no-referrer"
-            />
-          </div>
-
-          {/* Corner Decorative Image (Específico para serie-1) */}
-          {selectedSeries.id === "serie-1" && (
-            <div className="hidden md:block absolute bottom-[10%] right-[2%] md:bottom-[15%] md:right-[3%] z-[31] pointer-events-none sm:pointer-events-auto">
-              <motion.img 
-                initial={{ opacity: 0, y: 20, scale: 0.8 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                whileHover={{ scale: 1.1, rotate: -5 }}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (onFlashClick) onFlashClick();
-                }}
-                src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjG765V9SZYe_xm6L7OR40vFg458HzgB846wX2jdgFf-bukpEJgiQ6ZMgPwNpu7Mfk0FUGmABIgMj5GTKdH8tnr_7R7r6X2fRplfiOznnkA6gKcV6Nft6udNMbGsro3GaWzn6fs_6tBkRJFMVzZuGJ-R-yyoQHjaC052-T-X5wp9JbaX7Vhg4gcKNker00/s2007/moda%20granjera.png" 
-                alt="Moda Granjera Deco" 
-                className="w-24 h-auto md:w-32 lg:w-44 cursor-pointer pointer-events-auto"
-                referrerPolicy="no-referrer"
-              />
-            </div>
-          )}
-
         <button 
           onClick={handleBackToHome} 
           className="absolute top-20 md:top-24 left-6 z-50 flex items-center justify-center text-white bg-black/60 hover:bg-pink-600 backdrop-blur-xl w-10 h-10 md:w-12 md:h-12 rounded-full transition-all duration-300 border border-white/20 shadow-2xl hover:scale-110 active:scale-95 group/back"
@@ -187,23 +159,37 @@ const SeriesDetailView = ({
           </div>
         </div>
       <div className="max-w-7xl mx-auto px-4 md:px-8 -mt-16 md:-mt-32 relative pt-16 z-30">
-        {selectedSeries.seasons && selectedSeries.seasons.length > 1 && (
-          <div className="flex flex-wrap gap-2 mb-8">
-            {selectedSeries.seasons.map(season => (
-              <button
-                key={season.id}
-                onClick={() => setActiveSeasonId(season.id)}
-                className={`px-6 py-2.5 rounded-full font-bold text-sm transition-all duration-300 shadow-md ${
-                  activeSeasonId === season.id 
-                    ? 'bg-pink-600 text-white shadow-[0_0_15px_rgba(236,72,153,0.3)]' 
-                    : 'bg-zinc-900 text-gray-400 hover:text-white hover:bg-zinc-800 border border-white/5'
-                }`}
-              >
-                {season.title}
-              </button>
-            ))}
+        <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
+          {selectedSeries.seasons && selectedSeries.seasons.length > 1 ? (
+            <div className="flex flex-wrap gap-2">
+              {selectedSeries.seasons.map(season => (
+                <button
+                  key={season.id}
+                  onClick={() => setActiveSeasonId(season.id)}
+                  className={`px-6 py-2.5 rounded-full font-bold text-sm transition-all duration-300 shadow-md ${
+                    activeSeasonId === season.id 
+                      ? 'bg-pink-600 text-white shadow-[0_0_15px_rgba(236,72,153,0.3)]' 
+                      : 'bg-zinc-900 text-gray-400 hover:text-white hover:bg-zinc-800 border border-white/5'
+                  }`}
+                >
+                  {season.title}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div />
+          )}
+
+          {/* Logo Reality Vault en el lateral derecho */}
+          <div className="opacity-70 hover:opacity-100 transition-opacity ml-auto">
+            <img 
+              src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgMJ-pH_Y36jVEiqf37tJlAcWHHe17x0TrhCYFAsEdaxUgvfRk1nuuLa8hFdegCm2eXFXD2KcDNexTGzttQFJzMz9VJhVnrww8jKxKXqG3cWWNadkJ9xeNJm5Q5ZRWJrfkdILtrBRHCYHf9BzEVcJdYzdYtSqW0hfQaq8jpLlqAlCaQ7ZzJIisUk164XhA/s1684/REALITY%20VAULT%20LOGO%20tr.png" 
+              alt="Reality Vault" 
+              className="h-6 md:h-9 lg:h-10 w-auto object-contain drop-shadow-[0_0_8px_rgba(0,0,0,0.8)]"
+              referrerPolicy="no-referrer"
+            />
           </div>
-        )}
+        </div>
         <div className="space-y-12">
           {(selectedSeries.seasons || [])
             .filter(season => selectedSeries.seasons?.length === 1 || season.id === activeSeasonId)

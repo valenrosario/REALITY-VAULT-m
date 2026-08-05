@@ -666,7 +666,7 @@ const HomeView = ({
     setCurrentBannerIndex(prev => (prev - 1 + displayBanners.length) % displayBanners.length);
   };
 
-  const currentSeries = displayBanners[currentBannerIndex] || displayBanners[0] || defaultStaticBanners[0];
+  const currentBanner = displayBanners[currentBannerIndex] || displayBanners[0] || defaultStaticBanners[0];
 
   // SEARCH MODE
   if (searchQuery) {
@@ -726,11 +726,11 @@ const HomeView = ({
       <div 
         onClick={(e) => {
           e?.stopPropagation();
-          if (currentSeries.seriesId) {
-            const linkedSeries = seriesData.find(s => s.id === currentSeries.seriesId);
+          if (currentBanner.seriesId) {
+            const linkedSeries = seriesData.find(s => s.id === currentBanner.seriesId);
             if (linkedSeries) onSeriesClick(linkedSeries);
-          } else if (currentSeries.id && currentSeries.id.startsWith('serie-')) {
-            onSeriesClick(seriesData.find(s => s.id === currentSeries.id) || currentSeries);
+          } else if (currentBanner.id && currentBanner.id.startsWith('serie-')) {
+            onSeriesClick(currentBanner);
           }
         }}
         onTouchStart={onTouchStartBanner}
@@ -742,7 +742,7 @@ const HomeView = ({
         <div className="hidden md:block w-full relative min-h-[65vh] md:min-h-[75vh]">
           <AnimatePresence initial={false} mode="popLayout">
             <motion.div 
-              key={currentSeries.id || currentBannerIndex}
+              key={currentBanner.id || currentBannerIndex}
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
@@ -750,10 +750,10 @@ const HomeView = ({
               className="absolute inset-0 w-full h-full"
             >
                 <picture className="absolute inset-0 w-full h-full block">
-                  <source media="(max-width: 768px)" srcSet={currentSeries.mobileImage || currentSeries.mobileBannerImage || currentSeries.coverImage || undefined} />
+                  <source media="(max-width: 768px)" srcSet={currentBanner.mobileImage || currentBanner.mobileBannerImage || currentBanner.coverImage || undefined} />
                   <img 
-                    src={currentSeries.desktopImage || currentSeries.bannerImage || currentSeries.coverImage || undefined} 
-                    alt={currentSeries.title} 
+                    src={currentBanner.desktopImage || currentBanner.bannerImage || currentBanner.coverImage || undefined} 
+                    alt={currentBanner.title} 
                     className="absolute inset-0 w-full h-full block object-cover object-center"
                     referrerPolicy="no-referrer"
                   />
@@ -768,38 +768,38 @@ const HomeView = ({
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.2, duration: 0.4 }}
                     >
-                      {currentSeries.logoUrl ? (
+                      {currentBanner.logoUrl ? (
                         <img 
-                          src={currentSeries.logoUrl || undefined} 
-                          alt={currentSeries.title} 
+                          src={currentBanner.logoUrl || undefined} 
+                          alt={currentBanner.title} 
                           className="max-w-[280px] md:max-w-[400px] lg:max-w-[500px] max-h-[100px] md:max-h-[140px] lg:max-h-[180px] w-auto h-auto object-contain object-left mb-6 drop-shadow-lg" 
                           referrerPolicy="no-referrer"
                         />
                       ) : (
                         <h1 className="font-gravity text-3xl md:text-5xl font-extrabold text-white mb-2 leading-none">
-                          {currentSeries.title}
+                          {currentBanner.title}
                         </h1>
                       )}
                       
                       <h2 className="text-white font-gravity font-bold text-base md:text-xl mb-2">
-                        {currentSeries.bannerText || (currentSeries.isComingSoon ? 'Muy Pronto' : 'Todos los episodios disponibles')}
+                        {currentBanner.bannerText || (currentBanner.isComingSoon ? 'Muy Pronto' : 'Todos los episodios disponibles')}
                       </h2>
 
                       <div className="flex items-center gap-2 text-gray-300 text-[10px] md:text-xs font-medium">
-                         <span className="bg-white/20 px-1.5 py-0.5 rounded text-white border border-white/10">{currentSeries.contentRating || "TV-14"}</span>
-                         {('bannerCustomText' in currentSeries) && (currentSeries as any).bannerCustomText ? (
-                            <span className="text-white">{String((currentSeries as any).bannerCustomText)}</span>
+                         <span className="bg-white/20 px-1.5 py-0.5 rounded text-white border border-white/10">{currentBanner.contentRating || "TV-14"}</span>
+                         {('bannerCustomText' in currentBanner) && (currentBanner as any).bannerCustomText ? (
+                            <span className="text-white">{String((currentBanner as any).bannerCustomText)}</span>
                          ) : (
                            <>
-                             <span>{currentSeries.year || '2000'}</span>
+                             <span>{currentBanner.year || '2000'}</span>
                              <span>•</span>
-                             <span>{currentSeries.genre || 'Reality'}</span>
+                             <span>{currentBanner.genre || 'Reality'}</span>
                            </>
                          )}
                       </div>
                       
                       <p className="text-gray-300 text-sm md:text-base line-clamp-2 md:line-clamp-3 mt-4 mb-6 font-inter font-medium leading-relaxed drop-shadow-sm max-w-xl">
-                        {currentSeries.description}
+                        {currentBanner.description}
                       </p>
                     </motion.div>
                   </div>
@@ -811,17 +811,17 @@ const HomeView = ({
         {/* Mobile Version - 1080x1440 Poster aspect ratio */}
         <div className="md:hidden w-full relative min-h-[65vh] overflow-hidden">
           <img 
-            src={currentSeries.mobileImage || currentSeries.mobileBannerImage || currentSeries.coverImage || undefined} 
-            alt={currentSeries.title} 
+            src={currentBanner.mobileImage || currentBanner.mobileBannerImage || currentBanner.coverImage || undefined} 
+            alt={currentBanner.title} 
             className="absolute inset-0 w-full h-full object-cover"
           />
 
           {/* Bottom UI inside card */}
           <div className="absolute inset-x-0 bottom-0 p-5 pb-8 flex flex-col items-center justify-end z-10 h-full">
             {/* Logo */}
-            {(currentSeries.mobileLogoUrl || currentSeries.logoUrl) && (
+            {(currentBanner.mobileLogoUrl || currentBanner.logoUrl) && (
               <img 
-                src={currentSeries.mobileLogoUrl || currentSeries.logoUrl} 
+                src={currentBanner.mobileLogoUrl || currentBanner.logoUrl} 
                 className="max-w-[85%] max-h-[100px] w-auto h-auto object-contain drop-shadow-[0_0_15px_rgba(0,0,0,0.6)] mb-4" 
                 alt="Logo" 
               />
@@ -829,29 +829,29 @@ const HomeView = ({
             
             {/* Metadata */}
             <div className="flex items-center gap-2 text-white/90 text-[13px] font-medium drop-shadow-md mb-3">
-               <span className="bg-white/20 px-1.5 py-0.5 rounded text-white border border-white/10">{currentSeries.contentRating || "TV-14"}</span>
-               {('bannerCustomText' in currentSeries) && (currentSeries as any).bannerCustomText ? (
-                 <span>{String((currentSeries as any).bannerCustomText)}</span>
+               <span className="bg-white/20 px-1.5 py-0.5 rounded text-white border border-white/10">{currentBanner.contentRating || "TV-14"}</span>
+               {('bannerCustomText' in currentBanner) && (currentBanner as any).bannerCustomText ? (
+                 <span>{String((currentBanner as any).bannerCustomText)}</span>
                ) : (
                  <>
-                   <span>{currentSeries.year || '2000'}</span>
+                   <span>{currentBanner.year || '2000'}</span>
                    <span>•</span>
-                   <span>{currentSeries.genre || 'Reality'}</span>
+                   <span>{currentBanner.genre || 'Reality'}</span>
                  </>
                )}
             </div>
 
             {/* Buttons */}
             <div className="flex items-center gap-3 w-full">
-              {currentSeries.id === "serie-3" ? (
+              {currentBanner.id === "serie-3" ? (
                 <button 
                   onClick={(e) => {
                     e?.stopPropagation();
-                    if (currentSeries.seriesId) {
-                      const linkedSeries = seriesData.find(s => s.id === currentSeries.seriesId);
+                    if (currentBanner.seriesId) {
+                      const linkedSeries = seriesData.find(s => s.id === currentBanner.seriesId);
                       if (linkedSeries) onSeriesClick(linkedSeries);
-                    } else if (currentSeries.id && currentSeries.id.startsWith('serie-')) {
-                      onSeriesClick(seriesData.find(s => s.id === currentSeries.id) || currentSeries);
+                    } else if (currentBanner.id && currentBanner.id.startsWith('serie-')) {
+                      onSeriesClick(currentBanner);
                     }
                   }}
                   className="flex-1 bg-white text-black font-inter font-black py-4 rounded-xl flex items-center justify-center gap-2 text-[15px] active:scale-95 transition-transform shadow-lg"
@@ -864,11 +864,11 @@ const HomeView = ({
                   <button 
                     onClick={(e) => {
                       e?.stopPropagation();
-                      if (currentSeries.seriesId) {
-                        const linkedSeries = seriesData.find(s => s.id === currentSeries.seriesId);
+                      if (currentBanner.seriesId) {
+                        const linkedSeries = seriesData.find(s => s.id === currentBanner.seriesId);
                         if (linkedSeries) onSeriesClick(linkedSeries);
-                      } else if (currentSeries.id && currentSeries.id.startsWith('serie-')) {
-                        onSeriesClick(seriesData.find(s => s.id === currentSeries.id) || currentSeries);
+                      } else if (currentBanner.id && currentBanner.id.startsWith('serie-')) {
+                        onSeriesClick(currentBanner);
                       }
                     }}
                     className="flex-[3] bg-white text-black font-inter font-black py-4 rounded-xl flex items-center justify-center gap-2 text-[15px] active:scale-95 transition-transform shadow-lg"
@@ -877,10 +877,10 @@ const HomeView = ({
                     REPRODUCIR
                   </button>
                   <button 
-                    onClick={(e) => { e.stopPropagation(); onToggleFav(e, currentSeries.id); }}
+                    onClick={(e) => { e.stopPropagation(); onToggleFav(e, currentBanner.id); }}
                     className="flex-[2] bg-[#2a2a2a]/60 text-white font-inter font-black py-4 rounded-xl flex items-center justify-center gap-2 text-[15px] backdrop-blur-md border border-white/10 active:scale-95 transition-transform shadow-md"
                   >
-                    {favorites.includes(currentSeries.id) ? (
+                    {favorites.includes(currentBanner.id) ? (
                       <Check size={20} />
                     ) : (
                       <Plus size={20} />
@@ -1023,6 +1023,16 @@ const HomeView = ({
 // APLICACIÓN PRINCIPAL
 // ==========================================
 
+const slugify = (text: string) => {
+  return text
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+};
+
 function App() {
   const { appConfig } = useAppContext();
   // ESTADOS
@@ -1142,6 +1152,68 @@ function App() {
     }
   }, [user]);
 
+  // --- DYNAMIC URLS ---
+  const [hasProcessedUrl, setHasProcessedUrl] = useState(false);
+
+  useEffect(() => {
+    const handleRoute = () => {
+      const pathname = window.location.pathname;
+      if (pathname === '/admin') {
+        setView('admin');
+      } else if (pathname === '/mi-lista') {
+        setView('my-list');
+      } else if (pathname.startsWith('/serie/')) {
+        const parts = pathname.split('/');
+        const slug = parts[2];
+        const foundSeries = liveSeries.find(s => slugify(s.title) === slug);
+        if (foundSeries) {
+          setView('series');
+          setSelectedSeries(foundSeries);
+        } else {
+          setView('home');
+        }
+      } else if (pathname.startsWith('/watch/')) {
+        const parts = pathname.split('/');
+        const slug = parts[2];
+        const episodeId = parts[3];
+        const foundSeries = liveSeries.find(s => slugify(s.title) === slug);
+        if (foundSeries) {
+          setView('watch');
+          setSelectedSeries(foundSeries);
+          if (foundSeries.seasons) {
+            let foundEpisode = null;
+            for (const season of foundSeries.seasons) {
+              const ep = season.episodes?.find(e => e.id === episodeId);
+              if (ep) {
+                foundEpisode = ep;
+                break;
+              }
+            }
+            if (foundEpisode) setActiveEpisode(foundEpisode);
+            else setActiveEpisode(null);
+          } else {
+            setActiveEpisode(null);
+          }
+        } else {
+          setView('home');
+        }
+      } else {
+        setView('home');
+        setSelectedSeries(null);
+        setActiveEpisode(null);
+      }
+    };
+
+    if (!isDataLoading && !hasProcessedUrl && liveSeries.length > 0) {
+      handleRoute();
+      setHasProcessedUrl(true);
+    }
+
+    const onPopState = () => handleRoute();
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, [isDataLoading, hasProcessedUrl, liveSeries]);
+
   // --- HANDLERS ---
 
   const handleLogout = async () => {
@@ -1233,6 +1305,7 @@ function App() {
     setSelectedSeries(targetSeries);
     setIsAboutExpanded(false); // Resetear estado de "Leer más"
     setView('series');
+    window.history.pushState(null, '', `/serie/${targetSeries.id}`);
     window.scrollTo(0,0);
   };
 
@@ -1263,6 +1336,9 @@ function App() {
         updateUserData({ watchedEpisodes: nextWatched });
       }
       setView('watch');
+      if (selectedSeries) {
+        window.history.pushState(null, '', `/watch/${selectedSeries.id}/${episode.id}`);
+      }
       setLoading(false);
       window.scrollTo(0,0);
     }, 800);
@@ -1277,6 +1353,7 @@ function App() {
     setSelectedSeries(null);
     setActiveEpisode(null);
     setSearchQuery('');
+    window.history.pushState(null, '', '/');
     window.scrollTo(0, 0);
   };
 
@@ -1284,6 +1361,9 @@ function App() {
     setView('series');
     // NO limpiamos el episodio activo para mantener el estado visual de "visto recientemente"
     // setActiveEpisode(null); 
+    if (selectedSeries) {
+      window.history.pushState(null, '', `/serie/${selectedSeries.id}`);
+    }
     window.scrollTo(0, 0);
   };
 
@@ -1554,13 +1634,16 @@ function App() {
                         setIsAuthOpen(true);
                       } else {
                         setView('my-list');
+                        window.history.pushState(null, '', '/mi-lista');
                         window.scrollTo({ top: 0, behavior: 'smooth' });
                       }
                     } else if (item.id === 'admin') {
                       setView('admin');
+                      window.history.pushState(null, '', '/admin');
                       window.scrollTo({ top: 0, behavior: 'smooth' });
                     } else if (item.id === 'series') {
                       setView('home');
+                      window.history.pushState(null, '', '/');
                       setTimeout(() => {
                         const target = document.getElementById('series-section');
                         if (target) {
@@ -1636,6 +1719,8 @@ function App() {
                   setIsAuthOpen(true);
                 } else {
                   setView('my-list');
+                  window.history.pushState(null, '', '/mi-lista');
+                  window.scrollTo(0,0);
                 }
               }}
               title="Mi Lista"
@@ -1669,14 +1754,14 @@ function App() {
                         <p className="text-[10px] text-gray-500 truncate">{user.email}</p>
                       </div>
                       <button 
-                        onClick={() => { setView('my-list'); window.scrollTo(0,0); }}
+                        onClick={() => { setView('my-list'); window.history.pushState(null, '', '/mi-lista'); window.scrollTo(0,0); }}
                         className="w-full flex items-center gap-2 px-4 py-3 text-xs font-bold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
                       >
                         <Heart size={14} className="text-pink-500" />
                         Mi Lista
                       </button>
                       <button 
-                        onClick={() => { setView('admin'); window.scrollTo(0,0); }}
+                        onClick={() => { setView('admin'); window.history.pushState(null, '', '/admin'); window.scrollTo(0,0); }}
                         className="w-full flex items-center gap-2 px-4 py-3 text-xs font-bold text-pink-500 hover:bg-pink-50 dark:hover:bg-pink-500/10 transition-colors"
                       >
                         <LayoutDashboard size={14} />

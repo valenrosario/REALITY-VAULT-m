@@ -1,0 +1,106 @@
+--- src/components/admin/AdminDashboard.tsx
++++ src/components/admin/AdminDashboard.tsx
+@@ -901,8 +901,29 @@
+   const [tmdbId, setTmdbId] = useState('');
+   const [isTmdbLoading, setIsTmdbLoading] = useState(false);
+ 
+-  const handleTmdbAutocomplete = async () => {
+-    if (!tmdbId) return;
++  const [searchQuery, setSearchQuery] = useState('');
++  const [searchResults, setSearchResults] = useState<any[]>([]);
++  const [isSearchingTMDB, setIsSearchingTMDB] = useState(false);
++
++  useEffect(() => {
++    if (searchQuery.length > 2) {
++      setIsSearchingTMDB(true);
++      const timer = setTimeout(async () => {
++        try {
++          const apiKey = import.meta.env.VITE_TMDB_API_KEY;
++          if (!apiKey) return;
++          const res = await fetch(`https://api.themoviedb.org/3/search/tv?api_key=${apiKey}&language=es-ES&query=${encodeURIComponent(searchQuery)}`);
++          if (res.ok) {
++            const data = await res.json();
++            setSearchResults(data.results || []);
++          }
++        } catch (error) {
++          console.error(error);
++        } finally {
++          setIsSearchingTMDB(false);
++        }
++      }, 500);
++      return () => clearTimeout(timer);
++    } else {
++      setSearchResults([]);
++      setIsSearchingTMDB(false);
++    }
++  }, [searchQuery]);
++
++  const handleTmdbAutocomplete = async (idToFetch: string) => {
++    if (!idToFetch) return;
+     setIsTmdbLoading(true);
+     try {
+       const apiKey = import.meta.env.VITE_TMDB_API_KEY;
+@@ -911,7 +932,7 @@
+       }
+ 
+-      const res = await fetch(`https://api.themoviedb.org/3/tv/${tmdbId}?api_key=${apiKey}&language=es-MX&append_to_response=content_ratings,credits`);
++      const res = await fetch(`https://api.themoviedb.org/3/tv/${idToFetch}?api_key=${apiKey}&language=es-MX&append_to_response=content_ratings,credits`);
+       if (!res.ok) throw new Error("Serie no encontrada");
+       const data = await res.json();
+ 
+@@ -932,7 +953,7 @@
+         for (const season of data.seasons) {
+           if (season.season_number === 0) continue;
+           
+-          const seasonRes = await fetch(`https://api.themoviedb.org/3/tv/${tmdbId}/season/${season.season_number}?api_key=${apiKey}&language=es-MX`);
++          const seasonRes = await fetch(`https://api.themoviedb.org/3/tv/${idToFetch}/season/${season.season_number}?api_key=${apiKey}&language=es-MX`);
+           if (seasonRes.ok) {
+             const seasonData = await seasonRes.json();
+@@ -1041,17 +1062,25 @@
+             
+-            <div className="flex flex-col sm:flex-row gap-4 items-end bg-pink-50 p-4 rounded-2xl border border-pink-100">
+-              <div className="flex-1 w-full">
+-                <label className="block text-xs font-bold uppercase tracking-wider text-pink-600 mb-2">TMDB ID de la serie</label>
++            <div className="bg-pink-50 p-4 rounded-2xl border border-pink-100 relative z-50">
++              <div className="w-full relative">
+                 <input 
+                   type="text" 
+-                  value={tmdbId}
+-                  onChange={e => setTmdbId(e.target.value)}
+-                  placeholder="Ej: 1396 (Breaking Bad)"
+-                  className="w-full bg-white border border-pink-200 rounded-xl px-4 py-2 focus:outline-none focus:border-pink-500 text-sm text-slate-900"
++                  value={searchQuery}
++                  onChange={e => setSearchQuery(e.target.value)}
++                  placeholder="Buscar serie en TMDB..."
++                  className="w-full bg-white border border-pink-200 rounded-xl px-4 py-3 focus:outline-none focus:border-pink-500 text-sm text-slate-900"
+                 />
++                {isSearchingTMDB && <Loader2 className="absolute right-4 top-1/2 -translate-y-1/2 animate-spin text-pink-500" size={16} />}
++                {searchResults.length > 0 && (
++                  <div className="absolute top-full left-0 right-0 mt-2 bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl overflow-hidden max-h-64 overflow-y-auto">
++                    {searchResults.map(result => (
++                      <button
++                        key={result.id}
++                        onClick={() => {
++                          setSearchQuery('');
++                          setSearchResults([]);
++                          handleTmdbAutocomplete(result.id.toString());
++                        }}
++                        className="w-full text-left px-4 py-3 hover:bg-zinc-800 text-white text-sm border-b border-zinc-800/50 last:border-0 transition-colors flex justify-between items-center"
++                      >
++                        <span>{result.name}</span>
++                        <span className="text-zinc-500 text-xs">{result.first_air_date ? `(${result.first_air_date.split('-')[0]})` : ''}</span>
++                      </button>
++                    ))}
++                  </div>
++                )}
+               </div>
+-              <button
+-                type="button"
+-                onClick={handleTmdbAutocomplete}
+-                disabled={isTmdbLoading || !tmdbId}
+-                className="bg-pink-500 hover:bg-pink-600 text-white px-6 py-2 rounded-xl flex items-center justify-center gap-2 font-bold text-sm transition-all disabled:opacity-50 w-full sm:w-auto"
+-              >
+-                {isTmdbLoading ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
+-                {isTmdbLoading ? 'Cargando...' : 'Autocompletar Serie'}
+-              </button>
+             </div>
