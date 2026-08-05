@@ -951,7 +951,7 @@ const SeriesEditor = ({ serie, onBack }: { serie: Series, onBack: () => void }) 
         if (rating) topBadge = rating.rating;
       }
       
-      const cast = data.credits?.cast?.slice(0, 3).map((c: any) => c.name).join(', ') || '';
+      const cast = data.credits?.cast?.slice(0, 4).map((c: any) => c.name) || [];
       const tags = data.genres?.map((g: any) => g.name) || [];
       
       let seasonsData: Season[] = [];
@@ -962,13 +962,13 @@ const SeriesEditor = ({ serie, onBack }: { serie: Series, onBack: () => void }) 
           const seasonRes = await fetch(`https://api.themoviedb.org/3/tv/${idToFetch}/season/${season.season_number}?api_key=${apiKey}&language=es-MX`);
           if (seasonRes.ok) {
             const seasonData = await seasonRes.json();
-            const episodes: Episode[] = seasonData.episodes?.map((ep: any) => ({
-              id: `ep-${ep.id}`,
-              title: ep.name,
-              number: ep.episode_number,
-              description: ep.overview,
-              duration: ep.runtime ? `${ep.runtime} min` : '45 min',
-              thumbnailUrl: ep.still_path ? `https://image.tmdb.org/t/p/w500${ep.still_path}` : '',
+            const episodes: Episode[] = seasonData.episodes?.map((episode: any) => ({
+              id: `s${seasonData.season_number}e${episode.episode_number}`,
+              order: episode.episode_number,
+              title: episode.name || `Episodio ${episode.episode_number}`,
+              description: episode.overview || 'Sin descripción disponible.',
+              duration: episode.runtime ? `${episode.runtime} min` : '45 min',
+              thumbnail: episode.still_path ? `https://image.tmdb.org/t/p/w500${episode.still_path}` : '',
               videoUrl: ''
             })) || [];
             
@@ -987,7 +987,7 @@ const SeriesEditor = ({ serie, onBack }: { serie: Series, onBack: () => void }) 
         year: year || prev.year,
         description: description || prev.description,
         topBadge: topBadge || prev.topBadge,
-        cast: cast || prev.cast,
+        cast: cast.length > 0 ? cast : prev.cast,
         tags: tags.length > 0 ? tags : prev.tags,
         seasons: seasonsData.length > 0 ? seasonsData : prev.seasons
       }));
@@ -1137,6 +1137,16 @@ const SeriesEditor = ({ serie, onBack }: { serie: Series, onBack: () => void }) 
                   className="w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 focus:outline-none focus:border-pink-500 text-sm text-slate-900" 
                 />
               </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Protagonistas / Elenco (Separados por coma)</label>
+              <input 
+                type="text" 
+                value={formData.cast?.join(', ') || ''} 
+                onChange={e => setFormData({...formData, cast: e.target.value.split(',').map(t => t.trim())})} 
+                className="w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 focus:outline-none focus:border-pink-500 text-sm text-slate-900" 
+              />
             </div>
 
             <div className="grid grid-cols-2 gap-4">

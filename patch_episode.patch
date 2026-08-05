@@ -1,0 +1,22 @@
+--- src/components/admin/AdminDashboard.tsx
++++ src/components/admin/AdminDashboard.tsx
+@@ -964,12 +964,12 @@
+           if (seasonRes.ok) {
+             const seasonData = await seasonRes.json();
+-            const episodes: Episode[] = seasonData.episodes?.map((ep: any) => ({
+-              id: `s${seasonData.season_number}e${ep.episode_number}`,
+-              order: ep.episode_number,
+-              title: ep.name || `Episodio ${ep.episode_number}`,
+-              description: ep.overview || 'Sin descripción disponible.',
+-              duration: ep.runtime ? `${ep.runtime} min` : '45 min',
+-              thumbnail: ep.still_path ? `https://image.tmdb.org/t/p/w500${ep.still_path}` : '',
++            const episodes: Episode[] = seasonData.episodes?.map((episode: any) => ({
++              id: `s${seasonData.season_number}e${episode.episode_number}`,
++              order: episode.episode_number,
++              title: episode.name || `Episodio ${episode.episode_number}`,
++              description: episode.overview || 'Sin descripción disponible.',
++              duration: episode.runtime ? `${episode.runtime} min` : '45 min',
++              thumbnail: episode.still_path ? `https://image.tmdb.org/t/p/w500${episode.still_path}` : '',
+               videoUrl: ''
+             })) || [];
+             
