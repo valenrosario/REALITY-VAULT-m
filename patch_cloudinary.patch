@@ -1,0 +1,66 @@
+--- src/components/admin/AdminDashboard.tsx
++++ src/components/admin/AdminDashboard.tsx
+@@ -1455,11 +1455,27 @@
+     if (!file) return;
+     setIsUploading(true);
++    
++    const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
++    const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
++    if (!cloudName || !uploadPreset) {
++      console.error("Faltan las credenciales de Cloudinary en el archivo .env");
++      alert("Error: Faltan credenciales de Cloudinary.");
++      setIsUploading(false);
++      return;
++    }
++
+     try {
+-      const newUrl = await uploadToCloudinary(file);
+-      onUpload(newUrl);
+-    } catch (err) {
+-      console.error(err);
+-      alert('Error subiendo la imagen a Cloudinary');
++      const url = `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`;
++      const formData = new FormData();
++      formData.append('file', file);
++      formData.append('upload_preset', uploadPreset);
++      const response = await fetch(url, { method: 'POST', body: formData });
++      if (!response.ok) throw new Error('Error en Cloudinary');
++      const data = await response.json();
++      onUpload(data.secure_url);
++    } catch (error) {
++      console.error("Detalle del error:", error);
++      alert("Fallo la subida de la imagen");
+     } finally {
+       setIsUploading(false);
+@@ -1713,10 +1729,26 @@
+               if (file) {
+                 setIsUploading(true);
++                
++                const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
++                const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
++                if (!cloudName || !uploadPreset) {
++                  console.error("Faltan las credenciales de Cloudinary en el archivo .env");
++                  alert("Error: Faltan credenciales de Cloudinary.");
++                  setIsUploading(false);
++                  return;
++                }
++                
+                 try {
+-                  const url = await uploadToCloudinary(file);
+-                  onChange({ ...episode, thumbnail: url });
+-                } catch (err) {
+-                  console.error(err);
+-                  alert('Error al subir la miniatura');
++                  const url = `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`;
++                  const formData = new FormData();
++                  formData.append('file', file);
++                  formData.append('upload_preset', uploadPreset);
++                  const response = await fetch(url, { method: 'POST', body: formData });
++                  if (!response.ok) throw new Error('Error en Cloudinary');
++                  const data = await response.json();
++                  onChange({ ...episode, thumbnail: data.secure_url });
++                } catch (error) {
++                  console.error("Detalle del error:", error);
++                  alert("Fallo la subida de la imagen");
+                 } finally {
+                   setIsUploading(false);
