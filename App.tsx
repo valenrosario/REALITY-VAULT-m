@@ -570,6 +570,7 @@ const HomeView = ({
   seriesData: Series[],
   heroBanners: any[]
 }) => {
+  const { appConfig } = useAppContext();
   const retroSeries = seriesData.filter(s => !s.isComingSoon && s.id !== "serie-charm-school");
   const comingSoonSeries = seriesData.filter(s => s.isComingSoon && s.id !== "serie-charm-school");
   const favoriteSeries = seriesData.filter(s => favorites.includes(s.id) && s.id !== "serie-charm-school");
@@ -760,8 +761,8 @@ const HomeView = ({
                 
                 {/* Degradado superpuesto para texto */}
                 
-                <div className="absolute inset-0 flex flex-col justify-end p-16 pb-20 z-10">
-                  <div className="max-w-2xl relative">
+                <div className="absolute inset-0 flex flex-col justify-center items-start p-8 pt-32 pl-12 md:pl-24 lg:pl-40 z-10">
+                  <div className="max-w-4xl relative">
                     <motion.div
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -771,7 +772,7 @@ const HomeView = ({
                         <img 
                           src={currentSeries.logoUrl || undefined} 
                           alt={currentSeries.title} 
-                          className={`w-auto object-contain mb-2 self-start ${currentSeries.id === 'serie-3' ? 'h-8 md:h-12 lg:h-16' : ('isThirdBanner' in currentSeries) ? 'h-16 md:h-20 lg:h-24' : ('isFourthBanner' in currentSeries) ? 'h-10 md:h-16 lg:h-24' : 'h-12 md:h-24 lg:h-32'}`} 
+                          className="max-w-[280px] md:max-w-[400px] lg:max-w-[500px] max-h-[100px] md:max-h-[140px] lg:max-h-[180px] w-auto h-auto object-contain object-left mb-6 drop-shadow-lg" 
                           referrerPolicy="no-referrer"
                         />
                       ) : (
@@ -821,7 +822,7 @@ const HomeView = ({
             {(currentSeries.mobileLogoUrl || currentSeries.logoUrl) && (
               <img 
                 src={currentSeries.mobileLogoUrl || currentSeries.logoUrl} 
-                className={`${currentSeries.id === 'serie-3' ? 'w-[120px]' : ('isThirdBanner' in currentSeries) ? 'w-[240px]' : ('isFourthBanner' in currentSeries) ? 'w-[160px]' : 'w-[210px]'} h-auto max-w-[85%] object-contain drop-shadow-[0_0_15px_rgba(0,0,0,0.6)] mb-3`} 
+                className="max-w-[85%] max-h-[100px] w-auto h-auto object-contain drop-shadow-[0_0_15px_rgba(0,0,0,0.6)] mb-4" 
                 alt="Logo" 
               />
             )}
@@ -964,8 +965,8 @@ const HomeView = ({
 
       {/* Retro Series - Horizontal Slider */}
       <div className="w-full px-4 md:px-12 mt-8 md:mt-12" id="series-section">
-        <h2 className="font-gravity text-xl md:text-2xl font-bold text-white mb-2 md:mb-4 pl-3 border-l-4 border-pink-500 drop-shadow-sm">
-          Años 2000s (Retro)
+        <h2 className="font-gravity text-xl md:text-2xl font-bold text-gray-900 dark:text-white mb-2 md:mb-4 pl-3 border-l-4 border-pink-500 drop-shadow-sm">
+          {appConfig?.retroSectionTitle || "Años 2000s (Retro)"}
         </h2>
         
         <div className="relative group/slider">
@@ -1507,7 +1508,7 @@ function App() {
   if (view === 'admin') {
     return (
       <AdminProtectedRoute>
-        <AdminDashboard />
+        <AdminDashboard onExit={() => setView('home')} />
       </AdminProtectedRoute>
     );
   }

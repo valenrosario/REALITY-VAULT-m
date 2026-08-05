@@ -14,7 +14,11 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [seriesData, setSeriesData] = useState<Series[]>(SERIES_DATA);
-  const [appConfig, setAppConfig] = useState<AppConfig>({ marqueeText: MARQUEE_TEXT, socialLinks: SOCIAL_LINKS });
+  const [appConfig, setAppConfig] = useState<AppConfig>({ 
+    marqueeText: MARQUEE_TEXT, 
+    socialLinks: SOCIAL_LINKS,
+    retroSectionTitle: 'Años 2000s (Retro)'
+  });
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -39,9 +43,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     const unsubscribeConfig = onSnapshot(doc(db, 'appConfig', 'global'), (docSnap) => {
       if (docSnap.exists()) {
-        setAppConfig(docSnap.data() as AppConfig);
+        const data = docSnap.data() as AppConfig;
+        setAppConfig({
+          marqueeText: MARQUEE_TEXT,
+          socialLinks: SOCIAL_LINKS,
+          retroSectionTitle: 'Años 2000s (Retro)',
+          ...data
+        });
       } else {
-        setAppConfig({ marqueeText: MARQUEE_TEXT, socialLinks: SOCIAL_LINKS });
+        setAppConfig({ 
+          marqueeText: MARQUEE_TEXT, 
+          socialLinks: SOCIAL_LINKS,
+          retroSectionTitle: 'Años 2000s (Retro)'
+        });
       }
       configLoaded = true;
       checkLoading();

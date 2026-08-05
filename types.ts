@@ -106,6 +106,7 @@ export interface SocialLink {
 export interface AppConfig {
   marqueeText: string;
   socialLinks: SocialLink[];
+  retroSectionTitle?: string;
 }
 
 export interface Sparkle {

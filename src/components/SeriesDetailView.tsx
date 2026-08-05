@@ -29,6 +29,14 @@ const SeriesDetailView = ({
 }: SeriesDetailViewProps) => {
   const [isAboutExpanded, setIsAboutExpanded] = useState(false);
   const [selectedGalleryImage, setSelectedGalleryImage] = useState<string | null>(null);
+  const [activeSeasonId, setActiveSeasonId] = useState(selectedSeries.seasons?.[0]?.id || '');
+
+  React.useEffect(() => {
+    if (selectedSeries.seasons && selectedSeries.seasons.length > 0) {
+      setActiveSeasonId(selectedSeries.seasons[0].id);
+    }
+  }, [selectedSeries]);
+
   const isFav = favorites.includes(selectedSeries.id);
 
   return (
@@ -51,8 +59,6 @@ const SeriesDetailView = ({
               alt="Banner Overlay" 
               referrerPolicy="no-referrer"
             />
-
-            <div className="absolute inset-x-0 bottom-0 h-64 bg-gradient-to-t from-black via-black/60 to-transparent z-10" />
           </div>
 
           <div className="absolute bottom-4 right-4 md:bottom-8 md:right-8 z-30 opacity-50 hover:opacity-100 transition-opacity pointer-events-none">
@@ -180,22 +186,41 @@ const SeriesDetailView = ({
 
           </div>
         </div>
-      </div>
-
-      <div className="max-w-7xl mx-auto px-4 md:px-8 pt-12 relative z-30">
+      <div className="max-w-7xl mx-auto px-4 md:px-8 -mt-16 md:-mt-32 relative pt-16 z-30">
+        {selectedSeries.seasons && selectedSeries.seasons.length > 1 && (
+          <div className="flex flex-wrap gap-2 mb-8">
+            {selectedSeries.seasons.map(season => (
+              <button
+                key={season.id}
+                onClick={() => setActiveSeasonId(season.id)}
+                className={`px-6 py-2.5 rounded-full font-bold text-sm transition-all duration-300 shadow-md ${
+                  activeSeasonId === season.id 
+                    ? 'bg-pink-600 text-white shadow-[0_0_15px_rgba(236,72,153,0.3)]' 
+                    : 'bg-zinc-900 text-gray-400 hover:text-white hover:bg-zinc-800 border border-white/5'
+                }`}
+              >
+                {season.title}
+              </button>
+            ))}
+          </div>
+        )}
         <div className="space-y-12">
-          {(selectedSeries.seasons || []).map((season) => (
+          {(selectedSeries.seasons || [])
+            .filter(season => selectedSeries.seasons?.length === 1 || season.id === activeSeasonId)
+            .map((season) => (
             <SeasonSlider 
-              key={season.id} 
-              season={season} 
-              activeEpisode={activeEpisode} 
-              onEpisodeClick={handleWatchClick} 
-              user={user}
+               key={season.id} 
+               season={season} 
+               activeEpisode={activeEpisode} 
+               onEpisodeClick={handleWatchClick} 
+               user={user}
               isComingSoon={selectedSeries.isComingSoon}
               watchedEpisodes={watchedEpisodes}
             />
           ))}
         </div>
+      </div>
+
       </div>
 
       <div className={`max-w-7xl mx-auto px-4 md:px-8 ${selectedSeries.id === 'serie-1' ? 'pb-8 md:pb-20' : 'pb-20'} mt-10 md:mt-12 pt-8 md:pt-12 relative`}>

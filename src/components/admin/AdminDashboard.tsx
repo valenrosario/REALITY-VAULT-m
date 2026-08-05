@@ -19,7 +19,8 @@ import {
   Trash2,
   Users,
   Sparkles,
-  Tv
+  Tv,
+  ArrowLeft
 } from 'lucide-react';
 import { db } from '../../../firebase';
 import { collection, getDocs, doc, setDoc, writeBatch, onSnapshot, deleteDoc } from 'firebase/firestore';
@@ -149,7 +150,7 @@ export const AdminProtectedRoute = ({ children }: { children: React.ReactNode })
 // ==========================================
 // 2. LAYOUT BASE DEL PANEL (Sidebar + Content)
 // ==========================================
-export const AdminDashboard = () => {
+export const AdminDashboard = ({ onExit }: { onExit?: () => void }) => {
   const [activeTab, setActiveTab] = useState<'home' | 'series' | 'banners' | 'settings'>('home');
   const [series, setSeries] = useState<Series[]>([]);
   const [banners, setBanners] = useState<any[]>([]);
@@ -180,9 +181,15 @@ export const AdminDashboard = () => {
     // Escuchar configuración global
     const unsubscribeConfig = onSnapshot(doc(db, 'appConfig', 'global'), (docSnap) => {
       if (docSnap.exists()) {
-        setConfig(docSnap.data() as AppConfig);
+        const data = docSnap.data() as AppConfig;
+        setConfig({
+          marqueeText: MARQUEE_TEXT,
+          socialLinks: SOCIAL_LINKS,
+          retroSectionTitle: 'Años 2000s (Retro)',
+          ...data
+        });
       } else {
-        setConfig({ marqueeText: MARQUEE_TEXT, socialLinks: SOCIAL_LINKS });
+        setConfig({ marqueeText: MARQUEE_TEXT, socialLinks: SOCIAL_LINKS, retroSectionTitle: 'Años 2000s (Retro)' });
       }
     });
 
@@ -207,7 +214,7 @@ export const AdminDashboard = () => {
         batch.set(seriesRef, { ...s, order: i });
       });
       const configRef = doc(db, 'appConfig', 'global');
-      batch.set(configRef, { marqueeText: MARQUEE_TEXT, socialLinks: SOCIAL_LINKS });
+      batch.set(configRef, { marqueeText: MARQUEE_TEXT, socialLinks: SOCIAL_LINKS, retroSectionTitle: 'Años 2000s (Retro)' });
       
       await batch.commit();
       alert('¡Base de datos populada exitosamente!');
@@ -233,6 +240,16 @@ export const AdminDashboard = () => {
             Admin Control Center
           </p>
         </div>
+        
+        {onExit && (
+          <button
+            onClick={onExit}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-slate-600 font-bold transition-all mb-4 hover:bg-slate-100 hover:text-slate-900 border border-slate-200"
+          >
+            <ArrowLeft size={20} />
+            Volver al Inicio
+          </button>
+        )}
         
         <nav className="flex-1 space-y-3">
           <SidebarButton 
@@ -481,7 +498,7 @@ const SeriesManager = ({ series }: { series: Series[] }) => {
         </div>
         <button 
           onClick={createNewSeries}
-          className="bg-gradient-to-r from-cyan-500 via-pink-500 to-purple-500 text-white hover:opacity-90 px-5 py-2.5 rounded-2xl flex items-center gap-2 font-bold text-sm transition-all shadow-sm"
+          className="bg-black text-white hover:bg-zinc-800 font-bold py-2.5 px-6 rounded-lg transition-colors shadow-md flex items-center gap-2 text-sm"
         >
           <Plus size={18} /> Nueva Serie
         </button>
@@ -645,7 +662,7 @@ const BannersManager = ({ banners, series }: { banners: any[], series: any[] }) 
         <div className="flex gap-3">
           <button 
             onClick={createNewBanner}
-            className="bg-gradient-to-r from-cyan-500 via-pink-500 to-purple-500 text-white hover:opacity-90 px-5 py-2.5 rounded-2xl flex items-center gap-2 font-bold text-sm transition-all shadow-sm"
+            className="bg-black text-white hover:bg-zinc-800 font-bold py-2.5 px-6 rounded-lg transition-colors shadow-md flex items-center gap-2 text-sm"
           >
             <Plus size={18} /> Nuevo Banner
           </button>
@@ -747,7 +764,7 @@ const BannerEditor = ({ banner, onBack, series }: { banner: any, onBack: () => v
           <button onClick={handleDelete} className="bg-[#f6042e]/10 hover:bg-[#f6042e]/20 text-[#f6042e] px-4 py-2 rounded-2xl flex items-center gap-2 font-bold text-xs transition-all border border-[#f6042e]/20">
             <Trash2 size={16} /> Eliminar
           </button>
-          <button onClick={handleSave} disabled={isSaving} className="bg-[#5500bd] hover:bg-[#5500bd]/90 text-white font-bold px-6 py-2 rounded-xl shadow-lg transition-all active:scale-95 flex items-center gap-2 text-xs disabled:opacity-50">
+          <button onClick={handleSave} disabled={isSaving} className="bg-black text-white hover:bg-zinc-800 font-bold py-2.5 px-6 rounded-lg transition-colors shadow-md flex items-center gap-2 text-xs disabled:opacity-50">
             {isSaving ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
             <span>Guardar</span>
           </button>
@@ -887,7 +904,7 @@ const SeriesEditor = ({ serie, onBack }: { serie: Series, onBack: () => void }) 
           <button 
             onClick={handleSave} 
             disabled={isSaving} 
-            className="bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white px-5 py-2 rounded-2xl flex items-center gap-2 font-bold text-xs transition-all shadow-sm disabled:opacity-50"
+            className="bg-black text-white hover:bg-zinc-800 font-bold py-2.5 px-6 rounded-lg transition-colors shadow-md flex items-center gap-2 text-xs disabled:opacity-50"
           >
             {isSaving ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
             <span>{isSaving ? 'Guardando...' : 'Guardar Cambios'}</span>
@@ -1000,7 +1017,7 @@ const SeriesEditor = ({ serie, onBack }: { serie: Series, onBack: () => void }) 
                     seasons: [...formData.seasons, { id: newSeasonId, title: `Temporada ${formData.seasons.length + 1}`, episodes: [] }]
                   });
                 }}
-                className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-2xl text-xs font-bold flex items-center gap-2 transition-all border border-slate-200"
+                className="bg-black text-white hover:bg-zinc-800 font-bold py-2.5 px-6 rounded-lg transition-colors shadow-md flex items-center gap-2 text-xs"
               >
                 <Plus size={16} /> Nueva Temporada
               </button>
@@ -1529,6 +1546,15 @@ const ConfigManager = ({ config }: { config: AppConfig }) => {
   const [formData, setFormData] = useState<AppConfig>(config);
   const [isSaving, setIsSaving] = useState(false);
 
+  useEffect(() => {
+    setFormData({
+      marqueeText: MARQUEE_TEXT,
+      socialLinks: SOCIAL_LINKS,
+      retroSectionTitle: 'Años 2000s (Retro)',
+      ...config
+    });
+  }, [config]);
+
   const handleSave = async () => {
     setIsSaving(true);
     try {
@@ -1552,7 +1578,7 @@ const ConfigManager = ({ config }: { config: AppConfig }) => {
         <button 
           onClick={handleSave} 
           disabled={isSaving} 
-          className="bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white px-6 py-2.5 rounded-2xl flex items-center gap-2 font-bold text-sm transition-all shadow-sm disabled:opacity-50"
+          className="bg-black text-white hover:bg-zinc-800 font-bold py-2.5 px-6 rounded-lg transition-colors shadow-md flex items-center gap-2 text-xs disabled:opacity-50"
         >
           {isSaving ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
           <span>{isSaving ? 'Guardando...' : 'Guardar'}</span>
@@ -1560,6 +1586,19 @@ const ConfigManager = ({ config }: { config: AppConfig }) => {
       </div>
 
       <div className="bg-white/70 backdrop-blur-xl border border-slate-200 p-6 rounded-3xl space-y-6 shadow-sm">
+        <div>
+          <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
+            Título de la Sección Retro (Slider de Series)
+          </label>
+          <input 
+            type="text"
+            value={formData.retroSectionTitle ?? 'Años 2000s (Retro)'} 
+            onChange={e => setFormData({...formData, retroSectionTitle: e.target.value})} 
+            className="w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 focus:outline-none focus:border-pink-500 text-sm text-slate-900 font-medium" 
+            placeholder="Ej: Años 2000s (Retro)"
+          />
+        </div>
+
         <div>
           <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
             Marquee Text (Barra de noticias animada)
