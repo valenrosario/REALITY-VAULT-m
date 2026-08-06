@@ -54,6 +54,7 @@ export interface Series {
   isVisible?: boolean;
   isThirdBanner?: boolean;
   isFourthBanner?: boolean;
+  isHidden?: boolean;
 }
 
 export interface HeroBanner {

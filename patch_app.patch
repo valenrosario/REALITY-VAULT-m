@@ -1,0 +1,17 @@
+--- App.tsx
++++ App.tsx
+@@ -1045,6 +1045,8 @@
+   const [liveBanners, setLiveBanners] = useState<any[]>([]);
+   const [isDataLoading, setIsDataLoading] = useState(true);
+ 
++  const visibleSeries = liveSeries.filter(serie => !serie.isHidden);
++
+   const [view, setView] = useState<'home' | 'series' | 'watch' | 'my-list' | 'admin'>('home');
+   
+   // Favoritos (IDs)
+@@ -1052,7 +1054,7 @@
+   
+   // Derivada: Lista de Series favoritas
+-  const favoriteSeries = React.useMemo(() => liveSeries.filter(s => favorites.includes(s.id)), [liveSeries, favorites]);
++  const favoriteSeries = React.useMemo(() => visibleSeries.filter(s => favorites.includes(s.id)), [visibleSeries, favorites]);
+   

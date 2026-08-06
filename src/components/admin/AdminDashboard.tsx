@@ -9,7 +9,7 @@ import {
   Plus, 
   GripVertical, 
   Image as ImageIcon, 
-  Eye, 
+  Eye, EyeOff, 
   Save, 
   Lock, 
   AlertCircle, 
@@ -23,7 +23,7 @@ import {
   ArrowLeft
 } from 'lucide-react';
 import { db } from '../../../firebase';
-import { collection, getDocs, doc, setDoc, writeBatch, onSnapshot, deleteDoc } from 'firebase/firestore';
+import { collection, getDocs, doc, setDoc, writeBatch, onSnapshot, deleteDoc, updateDoc } from 'firebase/firestore';
 import { Series, Episode, Season, AppConfig } from '../../../types';
 import { SERIES_DATA, MARQUEE_TEXT, SOCIAL_LINKS } from '../../../constants';
 import { uploadToCloudinary } from '../../utils/cloudinary';
@@ -528,6 +528,16 @@ const SeriesManager = ({ series }: { series: Series[] }) => {
     }
   };
 
+  const toggleSeriesVisibility = async (e: React.MouseEvent, seriesId: string, currentHidden: boolean) => {
+    e.stopPropagation();
+    try {
+      await updateDoc(doc(db, "series", seriesId), { isHidden: !currentHidden });
+    } catch (error) {
+      console.error("Error al cambiar visibilidad:", error);
+      alert("Error al cambiar visibilidad");
+    }
+  };
+
   if (editingSeries) {
     return <SeriesEditor serie={editingSeries} onBack={() => setEditingSeries(null)} />;
   }
@@ -551,7 +561,7 @@ const SeriesManager = ({ series }: { series: Series[] }) => {
         <SortableContext items={items.map(i => i.id)} strategy={verticalListSortingStrategy}>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
             {items.map(s => (
-              <SortableSeriesCard key={s.id} series={s} onClick={() => setEditingSeries(s)} />
+              <SortableSeriesCard key={s.id} series={s} onClick={() => setEditingSeries(s)} onToggleHidden={(e: any) => toggleSeriesVisibility(e, s.id, !!s.isHidden)} />
             ))}
           </div>
         </SortableContext>
@@ -560,7 +570,7 @@ const SeriesManager = ({ series }: { series: Series[] }) => {
   );
 };
 
-const SortableSeriesCard: React.FC<{ series: Series, onClick: () => void }> = ({ series, onClick }) => {
+const SortableSeriesCard: React.FC<{ series: Series, onClick: () => void, onToggleHidden: (e: React.MouseEvent) => void }> = ({ series, onClick, onToggleHidden }) => {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: series.id });
   
   const style = {
@@ -571,8 +581,15 @@ const SortableSeriesCard: React.FC<{ series: Series, onClick: () => void }> = ({
   return (
     <div 
       ref={setNodeRef} style={style}
-      className="bg-white/80 backdrop-blur-xl border border-slate-200 rounded-2xl overflow-hidden cursor-pointer hover:border-[#00dbef] hover:shadow-[0_0_15px_rgba(0,219,239,0.3)] transition-all hover:-translate-y-1 group relative shadow-sm"
+      className={`bg-white/80 backdrop-blur-xl border ${series.isHidden ? 'border-slate-400 opacity-60 grayscale-[0.5]' : 'border-slate-200'} rounded-2xl overflow-hidden cursor-pointer hover:border-[#00dbef] hover:shadow-[0_0_15px_rgba(0,219,239,0.3)] transition-all hover:-translate-y-1 group relative shadow-sm`}
     >
+      <button 
+        onClick={onToggleHidden}
+        className="absolute top-2 right-2 z-30 bg-white/90 backdrop-blur-md p-1.5 rounded-lg hover:bg-slate-200 transition-colors border border-slate-200 shadow-sm"
+        title={series.isHidden ? "Mostrar serie" : "Ocultar serie"}
+      >
+        {series.isHidden ? <EyeOff size={16} className="text-slate-500" /> : <Eye size={16} className="text-slate-700" />}
+      </button>
       <div 
         {...attributes} {...listeners}
         className="absolute top-2 left-2 z-20 bg-white/90 backdrop-blur-md p-1.5 rounded-lg cursor-grab hover:bg-[#00dbef]/10 transition-colors border border-slate-200 shadow-sm"
@@ -595,6 +612,9 @@ const SortableSeriesCard: React.FC<{ series: Series, onClick: () => void }> = ({
         <span className={`inline-block text-[9px] uppercase font-bold px-2 py-0.5 rounded-md mt-1 ${series.isComingSoon ? 'bg-[#00dbef]/20 text-[#0442d9] border border-[#00dbef]/30' : 'bg-[#ffb9ff]/30 text-[#f10813] border border-[#ffb9ff]/50'}`}>
           {series.isComingSoon ? 'Muy Pronto' : 'Publicada'}
         </span>
+        {series.isHidden && (
+          <span className="inline-block text-[9px] uppercase font-bold px-2 py-0.5 rounded-md mt-1 ml-2 bg-slate-200 text-slate-600 border border-slate-300">Oculta</span>
+        )}
       </div>
     </div>
   );
@@ -1195,6 +1215,25 @@ const SeriesEditor = ({ serie, onBack }: { serie: Series, onBack: () => void }) 
                   className={`relative inline-flex h-7 w-14 items-center rounded-full transition-colors ${formData.isComingSoon ? 'bg-cyan-500' : 'bg-pink-500'}`}
                 >
                   <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${formData.isComingSoon ? 'translate-x-8' : 'translate-x-1'} shadow-sm`} />
+                </button>
+              </div>
+            </div>
+            
+            <div className="flex items-center justify-between p-4 bg-slate-50 border border-slate-200 rounded-2xl">
+              <div>
+                <span className="font-bold text-sm block text-slate-800">Ocultar serie al público (Borrador)</span>
+                <span className="text-xs text-slate-500">Solo visible para el administrador</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className={`text-xs font-bold ${formData.isHidden ? 'text-slate-500' : 'text-pink-500'}`}>
+                  {formData.isHidden ? 'Oculta' : 'Visible'}
+                </span>
+                <button 
+                  type="button"
+                  onClick={() => setFormData({...formData, isHidden: !formData.isHidden})}
+                  className={`relative inline-flex h-7 w-14 items-center rounded-full transition-colors ${formData.isHidden ? 'bg-slate-400' : 'bg-pink-500'}`}
+                >
+                  <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${formData.isHidden ? 'translate-x-8' : 'translate-x-1'} shadow-sm`} />
                 </button>
               </div>
             </div>

@@ -1045,13 +1045,15 @@ function App() {
   const [liveBanners, setLiveBanners] = useState<any[]>([]);
   const [isDataLoading, setIsDataLoading] = useState(true);
 
+  const visibleSeries = liveSeries.filter(serie => !serie.isHidden);
+
   const [view, setView] = useState<'home' | 'series' | 'watch' | 'my-list' | 'admin'>('home');
   
   // Favoritos (IDs)
   const [favorites, setFavorites] = useState<string[]>([]);
   
   // Derivada: Lista de Series favoritas
-  const favoriteSeries = React.useMemo(() => liveSeries.filter(s => favorites.includes(s.id)), [liveSeries, favorites]);
+  const favoriteSeries = React.useMemo(() => visibleSeries.filter(s => favorites.includes(s.id)), [visibleSeries, favorites]);
   
   // Datos seleccionados
   const [selectedSeries, setSelectedSeries] = useState<Series | null>(null);
@@ -1165,7 +1167,7 @@ function App() {
       } else if (pathname.startsWith('/serie/')) {
         const parts = pathname.split('/');
         const slug = parts[2];
-        const foundSeries = liveSeries.find(s => slugify(s.title) === slug);
+        const foundSeries = visibleSeries.find(s => slugify(s.title) === slug);
         if (foundSeries) {
           setView('series');
           setSelectedSeries(foundSeries);
@@ -1176,7 +1178,7 @@ function App() {
         const parts = pathname.split('/');
         const slug = parts[2];
         const episodeId = parts[3];
-        const foundSeries = liveSeries.find(s => slugify(s.title) === slug);
+        const foundSeries = visibleSeries.find(s => slugify(s.title) === slug);
         if (foundSeries) {
           setView('watch');
           setSelectedSeries(foundSeries);
@@ -1300,7 +1302,7 @@ function App() {
       return;
     }
     const targetSeries = series.id.includes("extra") 
-      ? liveSeries.find(s => s.id === series.id.replace("-extra", "")) || series 
+      ? visibleSeries.find(s => s.id === series.id.replace("-extra", "")) || series 
       : series;
     setSelectedSeries(targetSeries);
     setIsAboutExpanded(false); // Resetear estado de "Leer más"
@@ -1371,7 +1373,7 @@ function App() {
 
   const renderSeriesDetail = () => {
     if (!selectedSeries) return null;
-    const currentLiveSeries = liveSeries.find(s => s.id === selectedSeries.id) || selectedSeries;
+    const currentLiveSeries = visibleSeries.find(s => s.id === selectedSeries.id) || selectedSeries;
 
     return (
       <SeriesDetailView 
@@ -1862,7 +1864,7 @@ function App() {
             searchQuery={searchQuery} 
             onGifClick={() => setIsGifModalOpen(true)}
             isLoadingSeries={isDataLoading}
-            seriesData={liveSeries}
+            seriesData={visibleSeries}
             heroBanners={liveBanners}
           />
         )}
