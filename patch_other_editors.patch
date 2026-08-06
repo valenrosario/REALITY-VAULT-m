@@ -1,0 +1,26 @@
+--- src/components/admin/AdminDashboard.tsx
++++ src/components/admin/AdminDashboard.tsx
+@@ -773,7 +773,10 @@
+   const handleSave = async () => {
+     setIsSaving(true);
+     try {
+-      await setDoc(doc(db, 'heroBanners', formData.id), formData);
++      const dataToSave = Object.fromEntries(
++        Object.entries(formData).map(([k, v]) => [k, v === undefined ? '' : v])
++      );
++      await setDoc(doc(db, 'heroBanners', formData.id), dataToSave);
+       alert('¡Banner guardado!');
+     } catch (e) {
+       console.error(e);
+@@ -1784,7 +1787,10 @@
+   const handleSave = async () => {
+     setIsSaving(true);
+     try {
+-      await setDoc(doc(db, 'appConfig', 'global'), formData);
++      const dataToSave = Object.fromEntries(
++        Object.entries(formData).map(([k, v]) => [k, v === undefined ? '' : v])
++      );
++      await setDoc(doc(db, 'appConfig', 'global'), dataToSave);
+       alert('¡Configuración guardada!');
+     } catch (e) {
+       console.error(e);

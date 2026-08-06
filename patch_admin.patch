@@ -1,0 +1,30 @@
+--- src/components/admin/AdminDashboard.tsx
++++ src/components/admin/AdminDashboard.tsx
+@@ -983,10 +983,10 @@
+       setFormData(prev => ({
+         ...prev,
+-        title: title || prev.title,
+-        year: year || prev.year,
+-        description: description || prev.description,
+-        topBadge: topBadge || prev.topBadge,
++        title: title || prev.title || '',
++        year: year || prev.year || '',
++        description: description || prev.description || '',
++        topBadge: topBadge || prev.topBadge || '',
+         cast: cast.length > 0 ? cast : prev.cast,
+         tags: tags.length > 0 ? tags : prev.tags,
+         seasons: seasonsData.length > 0 ? seasonsData : prev.seasons
+       }));
+@@ -1003,7 +1003,11 @@
+   const handleSave = async () => {
+     setIsSaving(true);
++    
++    const dataToSave = Object.fromEntries(
++      Object.entries(formData).map(([k, v]) => [k, v === undefined ? '' : v])
++    );
++
+     try {
+-      await setDoc(doc(db, 'series', formData.id), formData);
++      await setDoc(doc(db, 'series', formData.id), dataToSave);
+       alert('¡Serie guardada en Firestore!');
+     } catch (e) {

@@ -771,7 +771,10 @@ const BannerEditor = ({ banner, onBack, series }: { banner: any, onBack: () => v
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      await setDoc(doc(db, 'heroBanners', formData.id), formData);
+      const dataToSave = Object.fromEntries(
+        Object.entries(formData).map(([k, v]) => [k, v === undefined ? '' : v])
+      );
+      await setDoc(doc(db, 'heroBanners', formData.id), dataToSave as any);
       alert('¡Banner guardado!');
     } catch (e) {
       console.error(e);
@@ -948,7 +951,7 @@ const SeriesEditor = ({ serie, onBack }: { serie: Series, onBack: () => void }) 
       let topBadge = '';
       if (data.content_ratings?.results) {
         const rating = data.content_ratings.results.find((r: any) => r.iso_3166_1 === 'US' || r.iso_3166_1 === 'ES' || r.iso_3166_1 === 'MX');
-        if (rating) topBadge = rating.rating;
+        if (rating) topBadge = rating.rating || "";
       }
       
       const cast = data.credits?.cast?.slice(0, 4).map((c: any) => c.name) || [];
@@ -983,10 +986,10 @@ const SeriesEditor = ({ serie, onBack }: { serie: Series, onBack: () => void }) 
 
       setFormData(prev => ({
         ...prev,
-        title: title || prev.title,
-        year: year || prev.year,
-        description: description || prev.description,
-        topBadge: topBadge || prev.topBadge,
+        title: title || prev.title || '',
+        year: year || prev.year || '',
+        description: description || prev.description || '',
+        topBadge: topBadge || prev.topBadge || '',
         cast: cast.length > 0 ? cast : prev.cast,
         tags: tags.length > 0 ? tags : prev.tags,
         seasons: seasonsData.length > 0 ? seasonsData : prev.seasons
@@ -1003,7 +1006,10 @@ const SeriesEditor = ({ serie, onBack }: { serie: Series, onBack: () => void }) 
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      await setDoc(doc(db, 'series', formData.id), formData);
+      const dataToSave = Object.fromEntries(
+        Object.entries(formData).map(([k, v]) => [k, v === undefined ? '' : v])
+      );
+      await setDoc(doc(db, 'series', formData.id), dataToSave as any);
       alert('¡Serie guardada en Firestore!');
     } catch (e) {
       console.error(e);
@@ -1782,7 +1788,10 @@ const ConfigManager = ({ config }: { config: AppConfig }) => {
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      await setDoc(doc(db, 'appConfig', 'global'), formData);
+      const dataToSave = Object.fromEntries(
+        Object.entries(formData).map(([k, v]) => [k, v === undefined ? '' : v])
+      );
+      await setDoc(doc(db, 'appConfig', 'global'), dataToSave as any);
       alert('¡Configuración guardada!');
     } catch (e) {
       console.error(e);
