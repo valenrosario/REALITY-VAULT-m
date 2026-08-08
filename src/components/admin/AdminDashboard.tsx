@@ -1165,6 +1165,112 @@ const SeriesEditor = ({ serie, onBack }: { serie: Series, onBack: () => void }) 
               </div>
             </div>
 
+            <div className="bg-slate-50 p-4 border border-slate-200 rounded-2xl space-y-4">
+              <h4 className="font-gravity text-pink-500 text-lg">Información de "Acerca de"</h4>
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Título para Acerca de</label>
+                <input 
+                  type="text" 
+                  value={formData.aboutTitle || ''} 
+                  onChange={e => setFormData({...formData, aboutTitle: e.target.value})} 
+                  className="w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 focus:outline-none focus:border-pink-500 text-sm text-slate-900" 
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Subtítulo/Género para Acerca de</label>
+                <input 
+                  type="text" 
+                  value={formData.aboutSubtitle || ''} 
+                  onChange={e => setFormData({...formData, aboutSubtitle: e.target.value})} 
+                  className="w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 focus:outline-none focus:border-pink-500 text-sm text-slate-900" 
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Descripción larga para Acerca de</label>
+                <textarea 
+                  value={formData.aboutDescription || ''} 
+                  onChange={e => setFormData({...formData, aboutDescription: e.target.value})} 
+                  rows={3} 
+                  className="w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 focus:outline-none focus:border-pink-500 text-sm resize-none text-slate-900" 
+                />
+              </div>
+            </div>
+
+            <div className="bg-slate-50 p-4 border border-slate-200 rounded-2xl space-y-4">
+              <h4 className="font-gravity text-pink-500 text-lg">Cadena e Idiomas</h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Cadena</label>
+                  <input 
+                    type="text" 
+                    value={formData.studio || ''} 
+                    onChange={e => setFormData({...formData, studio: e.target.value})} 
+                    className="w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 focus:outline-none focus:border-pink-500 text-sm text-slate-900" 
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">URL del Logo de la Cadena</label>
+                  <input 
+                    type="text" 
+                    value={formData.networkLogoUrl || ''} 
+                    onChange={e => setFormData({...formData, networkLogoUrl: e.target.value})} 
+                    className="w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 focus:outline-none focus:border-pink-500 text-sm text-slate-900" 
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Audio Original</label>
+                  <input 
+                    type="text" 
+                    value={formData.originalAudio || ''} 
+                    onChange={e => setFormData({...formData, originalAudio: e.target.value})} 
+                    className="w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 focus:outline-none focus:border-pink-500 text-sm text-slate-900" 
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Subtítulos (Separados por coma)</label>
+                  <input 
+                    type="text" 
+                    value={formData.subtitleLanguages?.join(', ') || ''} 
+                    onChange={e => setFormData({...formData, subtitleLanguages: e.target.value.split(',').map(t => t.trim()).filter(Boolean)})} 
+                    className="w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 focus:outline-none focus:border-pink-500 text-sm text-slate-900" 
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Región de Origen</label>
+                  <input 
+                    type="text" 
+                    value={formData.regionOfOrigin || ''} 
+                    onChange={e => setFormData({...formData, regionOfOrigin: e.target.value})} 
+                    className="w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 focus:outline-none focus:border-pink-500 text-sm text-slate-900" 
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Copyright</label>
+                  <input 
+                    type="text" 
+                    value={formData.copyright || ''} 
+                    onChange={e => setFormData({...formData, copyright: e.target.value})} 
+                    className="w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 focus:outline-none focus:border-pink-500 text-sm text-slate-900" 
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Clasificación (Rating)</label>
+                  <input 
+                    type="text" 
+                    value={formData.contentRating || ''} 
+                    onChange={e => setFormData({...formData, contentRating: e.target.value})} 
+                    className="w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 focus:outline-none focus:border-pink-500 text-sm text-slate-900" 
+                  />
+                </div>
+              </div>
+            </div>
+
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Protagonistas / Elenco (Separados por coma)</label>
               <input 

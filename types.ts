@@ -30,7 +30,10 @@ export interface Series {
   detailBannerDesktop?: string;
   detailBannerMobile?: string;
   description: string;
+  aboutTitle?: string;
+  aboutSubtitle?: string;
   aboutDescription?: string;
+  networkLogoUrl?: string;
   bannerText?: string;
   tags: string[];
   cast?: string[];

@@ -218,9 +218,9 @@ const SeriesDetailView = ({
               <Info size={20} className="md:w-6 md:h-6 text-pink-500" /> Acerca de
             </h3>
             <div className="bg-zinc-900/80 rounded-2xl md:rounded-3xl p-5 md:p-8 border border-white/5 shadow-2xl transition-all duration-300 hover:bg-zinc-800/80">
-              <h4 className="font-bold text-lg md:text-xl text-white mb-1">{selectedSeries.title}</h4>
+              <h4 className="font-bold text-lg md:text-xl text-white mb-1">{selectedSeries.aboutTitle || selectedSeries.title}</h4>
               <p className="text-xs font-bold text-pink-400 uppercase tracking-widest mb-4">
-                {(selectedSeries.tags || [])[0]}
+                {selectedSeries.aboutSubtitle || selectedSeries.genre || (selectedSeries.tags || [])[0]}
               </p>
               
               <div className="relative">
@@ -247,7 +247,8 @@ const SeriesDetailView = ({
             
             <div className="space-y-4 bg-zinc-900/80 rounded-2xl md:rounded-3xl p-5 md:p-8 border border-white/5 shadow-2xl">
               <div>
-                <p className="text-white/60 text-xs uppercase tracking-wider font-bold mb-1">Estudio</p>
+                <p className="text-white/60 text-xs uppercase tracking-wider font-bold mb-1">Cadena</p>
+                {selectedSeries.networkLogoUrl && <img src={selectedSeries.networkLogoUrl} alt="Cadena" className="h-6 object-contain mb-1" />}
                 <p className="text-white text-sm font-medium">{selectedSeries.studio || "N/A"}</p>
               </div>
               <div>
