@@ -1426,6 +1426,60 @@ const SeriesEditor = ({ serie, onBack }: { serie: Series, onBack: () => void }) 
               ))}
             </div>
           </div>
+          {/* Galería de Imágenes */}
+          <div className="bg-white/70 backdrop-blur-xl border border-slate-200 p-6 rounded-3xl space-y-4 shadow-sm">
+            <h3 className="text-xl font-gravity text-[#0281c8] mb-2">Galería de Imágenes</h3>
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleGalleryDragEnd}>
+              <SortableContext items={(formData.gallery || []).map(g => g.id)} strategy={rectSortingStrategy}>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-4">
+                  {(formData.gallery || []).map((img, idx) => (
+                    <SortableGalleryItem
+                      key={img.id}
+                      img={img}
+                      onRemove={() => {
+                        const newGallery = [...(formData.gallery || [])];
+                        newGallery.splice(idx, 1);
+                        setFormData({...formData, gallery: newGallery});
+                      }}
+                      onUpdateTags={(tags) => {
+                        const newGallery = [...(formData.gallery || [])];
+                        newGallery[idx].tags = tags;
+                        setFormData({...formData, gallery: newGallery});
+                      }}
+                    />
+                  ))}
+                  <div className="aspect-[4/3] rounded-xl border-2 border-dashed border-slate-300 flex flex-col items-center justify-center bg-slate-50 relative group hover:border-[#136bcf] transition-colors cursor-pointer">
+                    <Upload size={24} className="text-slate-400 group-hover:text-[#136bcf] mb-2" />
+                    <span className="text-xs font-bold text-slate-500 group-hover:text-[#136bcf]">Añadir</span>
+                    <input 
+                      type="file" 
+                      accept="image/*"
+                      multiple
+                      className="absolute inset-0 opacity-0 cursor-pointer"
+                      onChange={async (e) => {
+                        const files = e.target.files;
+                        if (!files || files.length === 0) return;
+                        try {
+                          const uploadPromises = Array.from(files).map(async (file: File) => {
+                            const url = await uploadToCloudinary(file);
+                            return { id: Date.now().toString() + Math.random().toString(36).substring(7), url, category: 'galeria' };
+                          });
+                          const newImages = await Promise.all(uploadPromises);
+                          setFormData({
+                            ...formData, 
+                            gallery: [...(formData.gallery || []), ...newImages]
+                          });
+                        } catch(err) {
+                          console.error(err);
+                          showToast('Error subiendo imágenes de galería', 'error');
+                        }
+                      }}
+                    />
+                  </div>
+                </div>
+              </SortableContext>
+            </DndContext>
+          </div>
         </div>
 
         {/* Subida de Imágenes */}
@@ -1510,60 +1564,6 @@ const SeriesEditor = ({ serie, onBack }: { serie: Series, onBack: () => void }) 
             </div>
           </div>
 
-          {/* Galería de Imágenes */}
-          <div className="bg-white/70 backdrop-blur-xl border border-slate-200 p-6 rounded-3xl space-y-4 shadow-sm">
-            <h3 className="text-xl font-gravity text-[#0281c8] mb-2">Galería de Imágenes</h3>
-            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleGalleryDragEnd}>
-              <SortableContext items={(formData.gallery || []).map(g => g.id)} strategy={rectSortingStrategy}>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
-                  {(formData.gallery || []).map((img, idx) => (
-                    <SortableGalleryItem
-                      key={img.id}
-                      img={img}
-                      onRemove={() => {
-                        const newGallery = [...(formData.gallery || [])];
-                        newGallery.splice(idx, 1);
-                        setFormData({...formData, gallery: newGallery});
-                      }}
-                      onUpdateTags={(tags) => {
-                        const newGallery = [...(formData.gallery || [])];
-                        newGallery[idx].tags = tags;
-                        setFormData({...formData, gallery: newGallery});
-                      }}
-                    />
-                  ))}
-                  <div className="aspect-[4/3] rounded-xl border-2 border-dashed border-slate-300 flex flex-col items-center justify-center bg-slate-50 relative group hover:border-[#136bcf] transition-colors cursor-pointer">
-                    <Upload size={24} className="text-slate-400 group-hover:text-[#136bcf] mb-2" />
-                    <span className="text-xs font-bold text-slate-500 group-hover:text-[#136bcf]">Añadir</span>
-                    <input 
-                      type="file" 
-                      accept="image/*"
-                      multiple
-                      className="absolute inset-0 opacity-0 cursor-pointer"
-                      onChange={async (e) => {
-                        const files = e.target.files;
-                        if (!files || files.length === 0) return;
-                        try {
-                          const uploadPromises = Array.from(files).map(async (file: File) => {
-                            const url = await uploadToCloudinary(file);
-                            return { id: Date.now().toString() + Math.random().toString(36).substring(7), url, category: 'galeria' };
-                          });
-                          const newImages = await Promise.all(uploadPromises);
-                          setFormData({
-                            ...formData, 
-                            gallery: [...(formData.gallery || []), ...newImages]
-                          });
-                        } catch(err) {
-                          console.error(err);
-                          showToast('Error subiendo imágenes de galería', 'error');
-                        }
-                      }}
-                    />
-                  </div>
-                </div>
-              </SortableContext>
-            </DndContext>
-          </div>
         </div>
       </div>
 
@@ -1650,33 +1650,31 @@ const SortableGalleryItem = ({
   const [localTags, setLocalTags] = useState(img.tags ? img.tags.join(', ') : '');
 
   return (
-    <div ref={setNodeRef} style={style} className="relative group rounded-xl overflow-hidden border border-slate-200">
-      <div className="aspect-[4/3] bg-slate-100 cursor-grab active:cursor-grabbing" {...attributes} {...listeners}>
+    <div ref={setNodeRef} style={style} className="flex flex-col bg-gray-50 dark:bg-white/5 p-3 rounded-xl border border-gray-200 dark:border-white/10 transition-colors relative group">
+      <div className="w-full aspect-[3/4] rounded-lg overflow-hidden cursor-grab active:cursor-grabbing relative mb-3" {...attributes} {...listeners}>
         <img src={img.url} alt="Gallery item" className="w-full h-full object-cover" />
+        <button 
+          type="button"
+          onPointerDown={(e) => { e.stopPropagation(); onRemove(); }}
+          className="absolute top-2 right-2 text-white p-1.5 rounded-lg shadow-lg z-10 opacity-0 group-hover:opacity-100 transition-opacity bg-pink-500 hover:bg-pink-600"
+        >
+          <Trash2 size={14} />
+        </button>
       </div>
       
-      {/* Botón de eliminar (esquina superior derecha) */}
-      <button 
-        type="button"
-        onPointerDown={(e) => { e.stopPropagation(); onRemove(); }}
-        className="absolute top-2 right-2 text-white p-1.5 rounded-lg shadow-lg z-10 opacity-0 group-hover:opacity-100 transition-opacity bg-pink-500 hover:bg-pink-600"
-      >
-        <Trash2 size={14} />
-      </button>
-
-      {/* Input de Tags en la base */}
-      <div className="absolute inset-x-0 bottom-0 bg-black/60 backdrop-blur-md p-2 opacity-0 group-hover:opacity-100 transition-opacity">
+      <div className="flex flex-col gap-1.5 w-full mt-auto">
+        <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Tags (Separados por coma)</label>
         <input 
           type="text" 
           value={localTags}
-          onPointerDown={(e) => e.stopPropagation()} // Para que no active el drag
+          onPointerDown={(e) => e.stopPropagation()}
           onChange={(e) => setLocalTags(e.target.value)}
           onBlur={() => {
             const tagsArray = localTags.split(',').map(t => t.trim()).filter(Boolean);
             onUpdateTags(tagsArray);
           }}
           placeholder="Tags (Y2K, Set...)"
-          className="w-full bg-transparent text-white text-[10px] font-bold px-2 py-1 rounded focus:outline-none focus:ring-1 focus:ring-white border border-white/20"
+          className="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 focus:outline-none focus:border-pink-500 text-xs text-slate-900"
         />
       </div>
     </div>
@@ -1889,6 +1887,7 @@ const SortableEpisodeCard: React.FC<{
   onChange: (ep: Episode) => void,
   onDelete: () => void 
 }> = ({ episode, onChange, onDelete }) => {
+  const showToast = useContext(ToastContext);
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: episode.id });
   const [isUploading, setIsUploading] = useState(false);
 
