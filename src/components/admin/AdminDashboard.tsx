@@ -1412,19 +1412,11 @@ const SeriesEditor = ({ serie, onBack }: { serie: Series, onBack: () => void }) 
           <div className="bg-white/70 backdrop-blur-xl border border-slate-200 p-6 rounded-3xl space-y-4 shadow-sm">
             <h3 className="text-xl font-gravity text-pink-500 mb-2">Logos</h3>
             <ImageUploader 
-              label="Logo Principal" 
+              label="Logo de la Serie (Universal)" 
               url={formData.logoUrl || ''} 
-              onUpload={(url) => setFormData({...formData, logoUrl: url})} 
-            />
-            <ImageUploader 
-              label="Logo Mobile" 
-              url={formData.mobileLogoUrl || ''} 
-              onUpload={(url) => setFormData({...formData, mobileLogoUrl: url})} 
-            />
-            <ImageUploader 
-              label="Logo Detalle (Detail Logo)" 
-              url={formData.detailLogoUrl || ''} 
-              onUpload={(url) => setFormData({...formData, detailLogoUrl: url})} 
+              onUpload={(url) => setFormData({...formData, logoUrl: url, mobileLogoUrl: url, detailLogoUrl: url})} 
+              containerClassName=""
+              dropzoneClassName="aspect-video rounded-xl overflow-hidden border-dashed border-2 border-pink-300 dark:border-pink-500/50 bg-pink-50/50 dark:bg-white/5 hover:bg-pink-100/50 transition-colors relative group flex items-center justify-center"
             />
           </div>
 
@@ -1599,7 +1591,19 @@ const SeriesEditor = ({ serie, onBack }: { serie: Series, onBack: () => void }) 
 };
 
 // Componente para Subir Imagen a Storage
-const ImageUploader = ({ label, url, onUpload }: { label: string, url: string, onUpload: (url: string) => void }) => {
+const ImageUploader = ({ 
+  label, 
+  url, 
+  onUpload,
+  containerClassName = "bg-white/70 backdrop-blur-xl border border-slate-200 p-5 rounded-3xl space-y-3 shadow-sm",
+  dropzoneClassName = "aspect-video bg-slate-50 rounded-2xl overflow-hidden border border-dashed border-slate-300 relative group flex items-center justify-center"
+}: { 
+  label: string; 
+  url: string; 
+  onUpload: (url: string) => void;
+  containerClassName?: string;
+  dropzoneClassName?: string;
+}) => {
   const [isUploading, setIsUploading] = useState(false);
 
   const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1634,9 +1638,9 @@ const ImageUploader = ({ label, url, onUpload }: { label: string, url: string, o
   };
 
   return (
-    <div className="bg-white/70 backdrop-blur-xl border border-slate-200 p-5 rounded-3xl space-y-3 shadow-sm">
+    <div className={containerClassName}>
       <h4 className="font-bold text-xs uppercase tracking-wider text-slate-500">{label}</h4>
-      <div className="aspect-video bg-slate-50 rounded-2xl overflow-hidden border border-dashed border-slate-300 relative group flex items-center justify-center">
+      <div className={dropzoneClassName}>
         {url ? (
           <img src={url} alt={label} className="w-full h-full object-contain" />
         ) : (
