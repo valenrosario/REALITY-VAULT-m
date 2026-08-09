@@ -16,6 +16,13 @@ export interface Season {
   episodes: Episode[];
 }
 
+export interface GalleryImage {
+  id: string;
+  url: string;
+  tags?: string[];
+  category?: 'galeria' | 'descargable';
+}
+
 export interface Series {
   id: string;
   order?: number;
@@ -50,7 +57,7 @@ export interface Series {
   audioLanguages?: string[];
   subtitleLanguages?: string[];
   copyright?: string;
-  gallery?: { id: string; url: string; category: string; }[];
+  gallery?: GalleryImage[];
   topBadge?: string;
   featureBadges?: string[];
   bannerCustomText?: string;

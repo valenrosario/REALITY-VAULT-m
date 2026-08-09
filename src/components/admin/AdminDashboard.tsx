@@ -24,7 +24,7 @@ import {
 } from 'lucide-react';
 import { db } from '../../../firebase';
 import { collection, getDocs, doc, setDoc, writeBatch, onSnapshot, deleteDoc, updateDoc } from 'firebase/firestore';
-import { Series, Episode, Season, AppConfig } from '../../../types';
+import { Series, Episode, Season, AppConfig, GalleryImage } from '../../../types';
 import { SERIES_DATA, MARQUEE_TEXT, SOCIAL_LINKS } from '../../../constants';
 import { uploadToCloudinary } from '../../utils/cloudinary';
 
@@ -42,9 +42,12 @@ import {
   SortableContext,
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
+  rectSortingStrategy,
   useSortable
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+
+export const ToastContext = createContext<(msg: string, type?: 'success' | 'error') => void>(() => {});
 
 // ==========================================
 // 1. ADMIN PROTECTED ROUTE (Contraseña: PARIS)
@@ -84,9 +87,9 @@ export const AdminProtectedRoute = ({ children }: { children: React.ReactNode })
               <Lock size={32} />
             </div>
             <img 
-              src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgLaRnLFdLrePsKdNQ1RUssbDupY8Vtjwnr8dEOmvRkpltkC0tSv-OEST91VTmX_O6wbVfdlxptgjszgZYli20-P01OE-faxg-EMP4SGdbMQMMEYBSut7D6MT7eizTzfYIm8mZn8uCyth31mXnp7YA7imudZK820qOopBYiJuFKMexY0P49eKeM71uWVZk/s1612/REALITY%20VAULT%20LOGO-Recuperado-Recuperado.png" 
+              src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhzZL1Es97pu0JBD5-MiY7rIoTOR03xFtlQ3LZgOMrbrqo3O4LWU4043kzyJdF2S74RPcHBXuZ8yDcsVCnI0kmfHoZG8VOV92nkdepVGwJ5YTu2BxWtVzd_svrZ5-CLhORLDw9Qf343uUtsexkC_24tXf3g61AkUTOrCTe2vaXw3lH4rcOcP6n7k3sz55E/s1845/REALITY%20VAULT%20LOGO%20BLANCO.png" 
               alt="Reality Vault" 
-              className="w-48 object-contain mx-auto mb-2"
+              className="w-48 object-contain mx-auto mb-2 bg-slate-900 p-2 rounded-xl"
             />
             <p className="text-xs text-slate-500 tracking-wider font-semibold uppercase">
               Panel Administrador
@@ -154,9 +157,15 @@ export const ConfirmContext = createContext<(msg: string, onConfirm: () => void)
 // ==========================================
 export const AdminDashboard = ({ onExit }: { onExit?: () => void }) => {
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, message: '', onConfirm: () => {} });
+  const [toastMessage, setToastMessage] = useState<{msg: string, type: 'success'|'error'} | null>(null);
   
   const requestConfirm = (message: string, onConfirm: () => void) => {
     setConfirmModal({ isOpen: true, message, onConfirm });
+  };
+  
+  const showToast = (msg: string, type: 'success' | 'error' = 'success') => {
+    setToastMessage({msg, type});
+    setTimeout(() => setToastMessage(null), 3000);
   };
   const [activeTab, setActiveTab] = useState<'home' | 'series' | 'banners' | 'settings'>('home');
   const [series, setSeries] = useState<Series[]>([]);
@@ -224,29 +233,32 @@ export const AdminDashboard = ({ onExit }: { onExit?: () => void }) => {
       batch.set(configRef, { marqueeText: MARQUEE_TEXT, socialLinks: SOCIAL_LINKS, retroSectionTitle: 'Años 2000s (Retro)' });
       
       await batch.commit();
-      alert('¡Base de datos populada exitosamente!');
+      showToast('¡Base de datos populada exitosamente!', 'success');
     } catch (e) {
       console.error(e);
-      alert('Error al migrar datos a Firestore');
+      showToast('Error al migrar datos a Firestore', 'error');
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
+    <ToastContext.Provider value={showToast}>
     <ConfirmContext.Provider value={requestConfirm}>
+      {toastMessage && (
+        <div className={`fixed top-4 right-4 z-[9999] px-6 py-3 rounded-2xl shadow-xl border font-bold text-sm transition-all animate-in fade-in slide-in-from-top-5 ${toastMessage.type === 'success' ? 'bg-green-500 text-white border-green-600' : 'bg-red-500 text-white border-red-600'}`}>
+          {toastMessage.msg}
+        </div>
+      )}
       <div className="flex h-screen bg-slate-50 text-slate-900 overflow-hidden font-sans">
         {/* Sidebar */}
       <aside className="w-64 bg-white/70 backdrop-blur-xl border-r border-slate-200 flex flex-col p-6 shadow-[4px_0_24px_rgba(0,0,0,0.02)] relative z-20">
         <div className="mb-10 text-center">
           <img 
-            src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgLaRnLFdLrePsKdNQ1RUssbDupY8Vtjwnr8dEOmvRkpltkC0tSv-OEST91VTmX_O6wbVfdlxptgjszgZYli20-P01OE-faxg-EMP4SGdbMQMMEYBSut7D6MT7eizTzfYIm8mZn8uCyth31mXnp7YA7imudZK820qOopBYiJuFKMexY0P49eKeM71uWVZk/s1612/REALITY%20VAULT%20LOGO-Recuperado-Recuperado.png" 
+            src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhzZL1Es97pu0JBD5-MiY7rIoTOR03xFtlQ3LZgOMrbrqo3O4LWU4043kzyJdF2S74RPcHBXuZ8yDcsVCnI0kmfHoZG8VOV92nkdepVGwJ5YTu2BxWtVzd_svrZ5-CLhORLDw9Qf343uUtsexkC_24tXf3g61AkUTOrCTe2vaXw3lH4rcOcP6n7k3sz55E/s1845/REALITY%20VAULT%20LOGO%20BLANCO.png" 
             alt="Reality Vault" 
-            className="h-10 object-contain mx-auto mb-2"
+            className="h-10 object-contain mx-auto mb-2 bg-slate-900 p-1 rounded-lg"
           />
-          <p className="text-[10px] text-purple-500 tracking-wider font-semibold uppercase mt-1">
-            Admin Control Center
-          </p>
         </div>
         
         {onExit && (
@@ -442,6 +454,7 @@ export const AdminDashboard = ({ onExit }: { onExit?: () => void }) => {
       </AnimatePresence>
     </div>
     </ConfirmContext.Provider>
+    </ToastContext.Provider>
   );
 };
 
@@ -463,6 +476,7 @@ const SidebarButton = ({ active, icon, label, onClick }: { active: boolean, icon
 // 3. GESTOR DE SERIES (Drag & Drop + Editor)
 // ==========================================
 const SeriesManager = ({ series }: { series: Series[] }) => {
+  const showToast = useContext(ToastContext);
   const [editingSeries, setEditingSeries] = useState<Series | null>(null);
   const [items, setItems] = useState<Series[]>(series);
   
@@ -499,14 +513,21 @@ const SeriesManager = ({ series }: { series: Series[] }) => {
   };
 
   const createNewSeries = async () => {
+    const PLACEHOLDERS = [
+      "https://res.cloudinary.com/hf3ijl6p/image/upload/v1786260552/POSTER_PLACEHOLDER_rcprmd.png",
+      "https://res.cloudinary.com/hf3ijl6p/image/upload/v1786260552/POSTER_PLACEHOLDER_3_nps6pv.png",
+      "https://res.cloudinary.com/hf3ijl6p/image/upload/v1786260552/POSTER_PLACEHOLDER_2_jpmeco.png",
+      "https://res.cloudinary.com/hf3ijl6p/image/upload/v1786260552/POSTER_PLACEHOLDER_1_cpamop.png"
+    ];
+    const randomPlaceholder = PLACEHOLDERS[Math.floor(Math.random() * PLACEHOLDERS.length)];
     const newId = `serie-${Date.now()}`;
     const newSeriesObj: Series = {
       id: newId,
       order: items.length,
       title: 'Nueva Serie',
       description: 'Escribe una descripción para esta serie...',
-      coverImage: 'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=800&auto=format&fit=crop&q=80',
-      bannerImage: 'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=1200&auto=format&fit=crop&q=80',
+      coverImage: randomPlaceholder,
+      bannerImage: randomPlaceholder,
       tags: ['Reality', 'Drama'],
       year: '2026',
       seasons: [
@@ -524,7 +545,7 @@ const SeriesManager = ({ series }: { series: Series[] }) => {
       setEditingSeries(newSeriesObj);
     } catch (err) {
       console.error(err);
-      alert('Error creando nueva serie');
+      showToast('Error creando nueva serie', 'error');
     }
   };
 
@@ -534,7 +555,7 @@ const SeriesManager = ({ series }: { series: Series[] }) => {
       await updateDoc(doc(db, "series", seriesId), { isHidden: !currentHidden });
     } catch (error) {
       console.error("Error al cambiar visibilidad:", error);
-      alert("Error al cambiar visibilidad");
+      showToast("Error al cambiar visibilidad", 'error');
     }
   };
 
@@ -624,6 +645,7 @@ const SortableSeriesCard: React.FC<{ series: Series, onClick: () => void, onTogg
 // BANNERS MANAGER
 // ==========================================
 const BannersManager = ({ banners, series }: { banners: any[], series: any[] }) => {
+  const showToast = useContext(ToastContext);
   const [editingBanner, setEditingBanner] = useState<any | null>(null);
   const [items, setItems] = useState<any[]>(banners);
 
@@ -707,7 +729,7 @@ const BannersManager = ({ banners, series }: { banners: any[], series: any[] }) 
       setEditingBanner(newBanner);
     } catch (err) {
       console.error(err);
-      alert('Error creando nuevo banner');
+      showToast('Error creando nuevo banner', 'error');
     }
   };
 
@@ -784,6 +806,7 @@ const SortableBannerCard: React.FC<{ banner: any, onClick: () => void }> = ({ ba
 };
 
 const BannerEditor = ({ banner, onBack, series }: { banner: any, onBack: () => void, series: any[] }) => {
+  const showToast = useContext(ToastContext);
   const requestConfirm = useContext(ConfirmContext);
   const [formData, setFormData] = useState<any>({ isVisible: true, ...banner });
   const [isSaving, setIsSaving] = useState(false);
@@ -795,10 +818,10 @@ const BannerEditor = ({ banner, onBack, series }: { banner: any, onBack: () => v
         Object.entries(formData).map(([k, v]) => [k, v === undefined ? '' : v])
       );
       await setDoc(doc(db, 'heroBanners', formData.id), dataToSave as any);
-      alert('¡Banner guardado!');
+      showToast('¡Banner guardado!', 'success');
     } catch (e) {
       console.error(e);
-      alert('Error guardando banner');
+      showToast('Error guardando banner', 'error');
     } finally {
       setIsSaving(false);
     }
@@ -915,7 +938,30 @@ const BannerEditor = ({ banner, onBack, series }: { banner: any, onBack: () => v
 // ==========================================
 // 4. EDITOR DE SERIE & MODAL DE PREVISUALIZACIÓN
 // ==========================================
+
+const StringArrayInput = ({ label, value, onChange, placeholder }: { label: string, value: string[], onChange: (val: string[]) => void, placeholder?: string }) => {
+  const [localVal, setLocalVal] = useState(value?.join(', ') || '');
+  
+  useEffect(() => {
+    setLocalVal(value?.join(', ') || '');
+  }, [value]);
+
+  return (
+    <div>
+      <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">{label}</label>
+      <input 
+        type="text" 
+        value={localVal}
+        onChange={(e) => setLocalVal(e.target.value)}
+        onBlur={() => onChange(localVal.split(',').map(t => t.trim()).filter(Boolean))}
+        placeholder={placeholder}
+        className="w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 focus:outline-none focus:border-pink-500 text-sm text-slate-900" 
+      />
+    </div>
+  );
+};
 const SeriesEditor = ({ serie, onBack }: { serie: Series, onBack: () => void }) => {
+  const showToast = useContext(ToastContext);
   const requestConfirm = useContext(ConfirmContext);
   const [formData, setFormData] = useState<Series>(serie);
   const [isSaving, setIsSaving] = useState(false);
@@ -925,6 +971,21 @@ const SeriesEditor = ({ serie, onBack }: { serie: Series, onBack: () => void }) 
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [isSearchingTMDB, setIsSearchingTMDB] = useState(false);
   const [isTmdbLoading, setIsTmdbLoading] = useState(false);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  const handleGalleryDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      const oldIndex = (formData.gallery || []).findIndex(item => item.id === active.id);
+      const newIndex = (formData.gallery || []).findIndex(item => item.id === over.id);
+      const newGallery = arrayMove(formData.gallery || [], oldIndex, newIndex);
+      setFormData({...formData, gallery: newGallery});
+    }
+  };
 
   useEffect(() => {
     if (searchQuery.length > 2) {
@@ -1030,10 +1091,10 @@ const SeriesEditor = ({ serie, onBack }: { serie: Series, onBack: () => void }) 
         Object.entries(formData).map(([k, v]) => [k, v === undefined ? '' : v])
       );
       await setDoc(doc(db, 'series', formData.id), dataToSave as any);
-      alert('¡Serie guardada en Firestore!');
+      showToast('¡Serie guardada en Firestore!', 'success');
     } catch (e) {
       console.error(e);
-      alert('Error guardando la serie');
+      showToast('Error guardando la serie', 'error');
     } finally {
       setIsSaving(false);
     }
@@ -1046,7 +1107,7 @@ const SeriesEditor = ({ serie, onBack }: { serie: Series, onBack: () => void }) 
         onBack();
       } catch (err) {
         console.error(err);
-        alert('Error al eliminar la serie');
+        showToast('Error al eliminar la serie', 'error');
       }
     });
   };
@@ -1154,15 +1215,11 @@ const SeriesEditor = ({ serie, onBack }: { serie: Series, onBack: () => void }) 
                 />
               </div>
 
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Tags (Separados por coma)</label>
-                <input 
-                  type="text" 
-                  value={formData.tags.join(', ')} 
-                  onChange={e => setFormData({...formData, tags: e.target.value.split(',').map(t => t.trim())})} 
-                  className="w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 focus:outline-none focus:border-pink-500 text-sm text-slate-900" 
-                />
-              </div>
+              <StringArrayInput 
+                label="Tags (Separados por coma)" 
+                value={formData.tags} 
+                onChange={val => setFormData({...formData, tags: val})} 
+              />
             </div>
 
             <div className="bg-slate-50 p-4 border border-slate-200 rounded-2xl space-y-4">
@@ -1228,15 +1285,11 @@ const SeriesEditor = ({ serie, onBack }: { serie: Series, onBack: () => void }) 
                     className="w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 focus:outline-none focus:border-pink-500 text-sm text-slate-900" 
                   />
                 </div>
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Subtítulos (Separados por coma)</label>
-                  <input 
-                    type="text" 
-                    value={formData.subtitleLanguages?.join(', ') || ''} 
-                    onChange={e => setFormData({...formData, subtitleLanguages: e.target.value.split(',').map(t => t.trim()).filter(Boolean)})} 
-                    className="w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 focus:outline-none focus:border-pink-500 text-sm text-slate-900" 
-                  />
-                </div>
+                <StringArrayInput 
+                  label="Subtítulos (Separados por coma)" 
+                  value={formData.subtitleLanguages || []} 
+                  onChange={val => setFormData({...formData, subtitleLanguages: val})} 
+                />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -1271,15 +1324,11 @@ const SeriesEditor = ({ serie, onBack }: { serie: Series, onBack: () => void }) 
               </div>
             </div>
 
-            <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Protagonistas / Elenco (Separados por coma)</label>
-              <input 
-                type="text" 
-                value={formData.cast?.join(', ') || ''} 
-                onChange={e => setFormData({...formData, cast: e.target.value.split(',').map(t => t.trim())})} 
-                className="w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 focus:outline-none focus:border-pink-500 text-sm text-slate-900" 
-              />
-            </div>
+            <StringArrayInput 
+              label="Protagonistas / Elenco (Separados por coma)" 
+              value={formData.cast || []} 
+              onChange={val => setFormData({...formData, cast: val})} 
+            />
 
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -1293,16 +1342,12 @@ const SeriesEditor = ({ serie, onBack }: { serie: Series, onBack: () => void }) 
                 />
               </div>
 
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Feature Badges (Por coma)</label>
-                <input 
-                  type="text" 
-                  value={(formData.featureBadges || []).join(', ')} 
-                  onChange={e => setFormData({...formData, featureBadges: e.target.value.split(',').map(t => t.trim()).filter(Boolean)})} 
-                  placeholder="Ej: HD, CC, 16+"
-                  className="w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 focus:outline-none focus:border-pink-500 text-sm text-slate-900" 
-                />
-              </div>
+              <StringArrayInput 
+                label="Feature Badges (Por coma)" 
+                value={formData.featureBadges || []} 
+                onChange={val => setFormData({...formData, featureBadges: val})} 
+                placeholder="Ej: HD, CC, 16+"
+              />
             </div>
 
             {/* Switch Muy Pronto / Publicada */}
@@ -1468,67 +1513,56 @@ const SeriesEditor = ({ serie, onBack }: { serie: Series, onBack: () => void }) 
           {/* Galería de Imágenes */}
           <div className="bg-white/70 backdrop-blur-xl border border-slate-200 p-6 rounded-3xl space-y-4 shadow-sm">
             <h3 className="text-xl font-gravity text-[#0281c8] mb-2">Galería de Imágenes</h3>
-            <div className="grid grid-cols-2 gap-4">
-              {(formData.gallery || []).map((img, idx) => (
-                <div key={img.id} className="relative group rounded-xl overflow-hidden border border-slate-200">
-                  <div className="aspect-[4/3] bg-slate-100">
-                    <img src={img.url} alt="Gallery item" className="w-full h-full object-cover" />
-                  </div>
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-between p-2">
-                    <button 
-                      onClick={() => {
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleGalleryDragEnd}>
+              <SortableContext items={(formData.gallery || []).map(g => g.id)} strategy={rectSortingStrategy}>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+                  {(formData.gallery || []).map((img, idx) => (
+                    <SortableGalleryItem
+                      key={img.id}
+                      img={img}
+                      onRemove={() => {
                         const newGallery = [...(formData.gallery || [])];
                         newGallery.splice(idx, 1);
                         setFormData({...formData, gallery: newGallery});
                       }}
-                      className="self-end text-white p-1.5 rounded-lg transition-colors shadow-lg"
-                      style={{ backgroundColor: '#f6042e' }}
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                    <input 
-                      type="text" 
-                      value={img.category}
-                      onChange={(e) => {
+                      onUpdateTags={(tags) => {
                         const newGallery = [...(formData.gallery || [])];
-                        newGallery[idx].category = e.target.value;
+                        newGallery[idx].tags = tags;
                         setFormData({...formData, gallery: newGallery});
                       }}
-                      placeholder="Tag (ej. Promo)"
-                      className="w-full bg-black/60 text-white text-[10px] font-bold px-2 py-1.5 rounded focus:outline-none focus:ring-1 focus:ring-white border border-white/20 backdrop-blur-md"
+                    />
+                  ))}
+                  <div className="aspect-[4/3] rounded-xl border-2 border-dashed border-slate-300 flex flex-col items-center justify-center bg-slate-50 relative group hover:border-[#136bcf] transition-colors cursor-pointer">
+                    <Upload size={24} className="text-slate-400 group-hover:text-[#136bcf] mb-2" />
+                    <span className="text-xs font-bold text-slate-500 group-hover:text-[#136bcf]">Añadir</span>
+                    <input 
+                      type="file" 
+                      accept="image/*"
+                      multiple
+                      className="absolute inset-0 opacity-0 cursor-pointer"
+                      onChange={async (e) => {
+                        const files = e.target.files;
+                        if (!files || files.length === 0) return;
+                        try {
+                          const uploadPromises = Array.from(files).map(async (file: File) => {
+                            const url = await uploadToCloudinary(file);
+                            return { id: Date.now().toString() + Math.random().toString(36).substring(7), url, category: 'galeria' };
+                          });
+                          const newImages = await Promise.all(uploadPromises);
+                          setFormData({
+                            ...formData, 
+                            gallery: [...(formData.gallery || []), ...newImages]
+                          });
+                        } catch(err) {
+                          console.error(err);
+                          showToast('Error subiendo imágenes de galería', 'error');
+                        }
+                      }}
                     />
                   </div>
                 </div>
-              ))}
-              <div className="aspect-[4/3] rounded-xl border-2 border-dashed border-slate-300 flex flex-col items-center justify-center bg-slate-50 relative group hover:border-[#136bcf] transition-colors cursor-pointer">
-                <Upload size={24} className="text-slate-400 group-hover:text-[#136bcf] mb-2" />
-                <span className="text-xs font-bold text-slate-500 group-hover:text-[#136bcf]">Añadir a Galería</span>
-                <input 
-                  type="file" 
-                  accept="image/*"
-                  multiple
-                  className="absolute inset-0 opacity-0 cursor-pointer"
-                  onChange={async (e) => {
-                    const files = e.target.files;
-                    if (!files || files.length === 0) return;
-                    try {
-                      const uploadPromises = Array.from(files).map(async (file: File) => {
-                        const url = await uploadToCloudinary(file);
-                        return { id: Date.now().toString() + Math.random().toString(36).substring(7), url, category: 'General' };
-                      });
-                      const newImages = await Promise.all(uploadPromises);
-                      setFormData({
-                        ...formData, 
-                        gallery: [...(formData.gallery || []), ...newImages]
-                      });
-                    } catch(err) {
-                      console.error(err);
-                      alert('Error subiendo imágenes de galería');
-                    }
-                  }}
-                />
-              </div>
-            </div>
+              </SortableContext>
+            </DndContext>
           </div>
         </div>
       </div>
@@ -1590,6 +1624,65 @@ const SeriesEditor = ({ serie, onBack }: { serie: Series, onBack: () => void }) 
   );
 };
 
+const SortableGalleryItem = ({ 
+  img, 
+  onRemove, 
+  onUpdateTags 
+}: { 
+  key?: string;
+  img: GalleryImage, 
+  onRemove: () => void, 
+  onUpdateTags: (tags: string[]) => void 
+}) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+  } = useSortable({ id: img.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  const [localTags, setLocalTags] = useState(img.tags ? img.tags.join(', ') : '');
+
+  return (
+    <div ref={setNodeRef} style={style} className="relative group rounded-xl overflow-hidden border border-slate-200">
+      <div className="aspect-[4/3] bg-slate-100 cursor-grab active:cursor-grabbing" {...attributes} {...listeners}>
+        <img src={img.url} alt="Gallery item" className="w-full h-full object-cover" />
+      </div>
+      
+      {/* Botón de eliminar (esquina superior derecha) */}
+      <button 
+        type="button"
+        onPointerDown={(e) => { e.stopPropagation(); onRemove(); }}
+        className="absolute top-2 right-2 text-white p-1.5 rounded-lg shadow-lg z-10 opacity-0 group-hover:opacity-100 transition-opacity bg-pink-500 hover:bg-pink-600"
+      >
+        <Trash2 size={14} />
+      </button>
+
+      {/* Input de Tags en la base */}
+      <div className="absolute inset-x-0 bottom-0 bg-black/60 backdrop-blur-md p-2 opacity-0 group-hover:opacity-100 transition-opacity">
+        <input 
+          type="text" 
+          value={localTags}
+          onPointerDown={(e) => e.stopPropagation()} // Para que no active el drag
+          onChange={(e) => setLocalTags(e.target.value)}
+          onBlur={() => {
+            const tagsArray = localTags.split(',').map(t => t.trim()).filter(Boolean);
+            onUpdateTags(tagsArray);
+          }}
+          placeholder="Tags (Y2K, Set...)"
+          className="w-full bg-transparent text-white text-[10px] font-bold px-2 py-1 rounded focus:outline-none focus:ring-1 focus:ring-white border border-white/20"
+        />
+      </div>
+    </div>
+  );
+};
+
 // Componente para Subir Imagen a Storage
 const ImageUploader = ({ 
   label, 
@@ -1604,6 +1697,7 @@ const ImageUploader = ({
   containerClassName?: string;
   dropzoneClassName?: string;
 }) => {
+  const showToast = useContext(ToastContext);
   const [isUploading, setIsUploading] = useState(false);
 
   const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1615,7 +1709,7 @@ const ImageUploader = ({
     const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
     if (!cloudName || !uploadPreset) {
       console.error("Faltan las credenciales de Cloudinary en el archivo .env");
-      alert("Error: Faltan credenciales de Cloudinary.");
+      showToast("Error: Faltan credenciales de Cloudinary.", 'error');
       setIsUploading(false);
       return;
     }
@@ -1631,7 +1725,7 @@ const ImageUploader = ({
       onUpload(data.secure_url);
     } catch (error) {
       console.error("Detalle del error:", error);
-      alert("Fallo la subida de la imagen");
+      showToast("Fallo la subida de la imagen", 'error');
     } finally {
       setIsUploading(false);
     }
@@ -1889,7 +1983,7 @@ const SortableEpisodeCard: React.FC<{
                 const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
                 if (!cloudName || !uploadPreset) {
                   console.error("Faltan las credenciales de Cloudinary en el archivo .env");
-                  alert("Error: Faltan credenciales de Cloudinary.");
+                  showToast("Error: Faltan credenciales de Cloudinary.", 'error');
                   setIsUploading(false);
                   return;
                 }
@@ -1905,7 +1999,7 @@ const SortableEpisodeCard: React.FC<{
                   onChange({ ...episode, thumbnail: data.secure_url });
                 } catch (error) {
                   console.error("Detalle del error:", error);
-                  alert("Fallo la subida de la imagen");
+                  showToast("Fallo la subida de la imagen", 'error');
                 } finally {
                   setIsUploading(false);
                 }
@@ -1922,6 +2016,7 @@ const SortableEpisodeCard: React.FC<{
 // 6. CONFIGURACIÓN GLOBAL (Marquee + Redes)
 // ==========================================
 const ConfigManager = ({ config }: { config: AppConfig }) => {
+  const showToast = useContext(ToastContext);
   const [formData, setFormData] = useState<AppConfig>(config);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -1941,10 +2036,10 @@ const ConfigManager = ({ config }: { config: AppConfig }) => {
         Object.entries(formData).map(([k, v]) => [k, v === undefined ? '' : v])
       );
       await setDoc(doc(db, 'appConfig', 'global'), dataToSave as any);
-      alert('¡Configuración guardada!');
+      showToast('¡Configuración guardada!', 'success');
     } catch (e) {
       console.error(e);
-      alert('Error guardando configuración');
+      showToast('Error guardando configuración', 'error');
     } finally {
       setIsSaving(false);
     }

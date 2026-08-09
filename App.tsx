@@ -722,10 +722,14 @@ const HomeView = ({
 
   return (
     <div className="pb-12 fade-in relative">
-      {/* Hero Carousel Dinámico */}
-      <div 
-        onClick={(e) => {
-          e?.stopPropagation();
+      {isLoadingSeries ? (
+        <div className="w-full bg-black min-h-[65vh] md:min-h-[75vh]" />
+      ) : (
+      <>
+        {/* Hero Carousel Dinámico */}
+        <div 
+          onClick={(e) => {
+            e?.stopPropagation();
           if (currentBanner.seriesId) {
             const linkedSeries = seriesData.find(s => s.id === currentBanner.seriesId);
             if (linkedSeries) onSeriesClick(linkedSeries);
@@ -922,6 +926,8 @@ const HomeView = ({
           </>
         )}
       </div>
+      </>
+      )}
 
       {/* Sección Favoritos (Mi Lista) */}
       {(isLoadingSeries || favoriteSeries.length > 0) && (

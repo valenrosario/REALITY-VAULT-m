@@ -304,18 +304,29 @@ const SeriesDetailView = ({
           <h3 className="text-2xl md:text-3xl font-gravity font-bold text-white mb-8 pt-8 md:pt-12 flex items-center gap-2">
             <Sparkles size={24} className="text-[#00dbef]" /> Galería
           </h3>
-          <div className="columns-1 sm:columns-2 md:columns-3 gap-4 space-y-4">
+          <div className="flex flex-row overflow-x-auto gap-4 pb-6 px-2 snap-x snap-mandatory no-scrollbar w-full">
             {(selectedSeries.gallery || []).map((img) => (
               <div 
                 key={img.id} 
-                className="relative group rounded-2xl overflow-hidden break-inside-avoid border border-white/10 cursor-pointer shadow-2xl hover:shadow-[0_0_20px_rgba(0,219,239,0.3)] transition-all duration-300"
+                className="shrink-0 w-[220px] md:w-[280px] aspect-[3/4] relative rounded-xl overflow-hidden snap-center cursor-pointer group shadow-lg border border-white/10 hover:border-pink-500 transition-all"
                 onClick={() => setSelectedGalleryImage(img.url)}
               >
-                <img src={img.url} alt={img.category} className="w-full h-auto object-cover transform group-hover:scale-105 transition-transform duration-500" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4">
-                  <span className="bg-black/50 backdrop-blur-md text-white text-[10px] font-bold px-3 py-1 rounded-full border border-white/20 shadow-lg">
-                    {img.category}
-                  </span>
+                <img src={img.url} alt={img.category || 'Gallery image'} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4">
+                  {img.category && (
+                    <span className="self-start mb-2 bg-black/50 backdrop-blur-md text-white text-[10px] font-bold px-3 py-1 rounded-full border border-white/20 shadow-lg">
+                      {img.category}
+                    </span>
+                  )}
+                  {img.tags && img.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mt-auto">
+                      {img.tags.map(tag => (
+                        <span key={tag} className="bg-black/60 backdrop-blur-md text-pink-300 text-[10px] font-bold px-2.5 py-1 rounded-full shadow-lg">
+                          #{tag}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
@@ -326,17 +337,18 @@ const SeriesDetailView = ({
       {/* Gallery Modal */}
       {selectedGalleryImage && (
         <div 
-          className="fixed inset-0 z-[150] flex items-center justify-center bg-black/90 backdrop-blur-sm p-4 animate-in fade-in zoom-in duration-300"
+          className="fixed inset-0 z-[200] bg-black/95 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-300"
           onClick={() => setSelectedGalleryImage(null)}
         >
           <img 
             src={selectedGalleryImage} 
             alt="Gallery Fullscreen" 
-            className="max-w-full max-h-full object-contain rounded-xl shadow-2xl" 
+            className="max-h-[85vh] max-w-[90vw] object-contain rounded-lg shadow-2xl z-[205]"
+            onClick={(e) => e.stopPropagation()}
           />
           <button 
             onClick={() => setSelectedGalleryImage(null)}
-            className="absolute top-4 right-4 bg-white/10 hover:bg-white/20 text-white rounded-full p-2 transition-colors border border-white/20 backdrop-blur-md"
+            className="absolute top-4 right-4 md:top-8 md:right-8 z-[210] bg-pink-500 hover:bg-pink-600 p-2 md:p-3 rounded-full text-white cursor-pointer transition-transform hover:scale-110 shadow-lg"
           >
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
           </button>
