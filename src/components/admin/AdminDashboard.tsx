@@ -1949,6 +1949,16 @@ const SortableEpisodeCard: React.FC<{
           />
         </div>
         
+        <div className="w-full">
+          <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Código Embed del Video (&lt;iframe&gt;)</label>
+          <textarea 
+            value={episode.embedCode || ''}
+            onChange={e => onChange({ ...episode, embedCode: e.target.value })}
+            className="w-full bg-slate-50 text-xs rounded-xl px-3 py-2 border border-slate-200 focus:border-pink-500 focus:outline-none resize-none h-16 text-slate-900 font-mono"
+            placeholder="<iframe src=...>"
+          />
+        </div>
+        
         <textarea 
           value={episode.description}
           onChange={e => onChange({ ...episode, description: e.target.value })}

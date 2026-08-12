@@ -1443,13 +1443,20 @@ function App() {
           }`}
         >
           <div className={`relative bg-black w-full shadow-inner ${isFullscreen ? 'h-full flex items-center justify-center' : 'pt-[56.25%]'}`}>
-            <iframe 
-              className="absolute top-0 left-0 w-full h-full border-0"
-              src={processedVideoUrl || undefined} 
-              title={activeEpisode.title} 
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-              allowFullScreen
-            ></iframe>
+            {activeEpisode.embedCode && activeEpisode.embedCode.includes('<iframe') ? (
+              <div 
+                className="absolute inset-0 w-full h-full [&>iframe]:absolute [&>iframe]:inset-0 [&>iframe]:w-full [&>iframe]:h-full [&>iframe]:border-0"
+                dangerouslySetInnerHTML={{ __html: activeEpisode.embedCode }}
+              />
+            ) : (
+              <iframe 
+                className="absolute top-0 left-0 w-full h-full border-0"
+                src={processedVideoUrl || undefined} 
+                title={activeEpisode.title} 
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                allowFullScreen
+              ></iframe>
+            )}
             {/* El "parche" que bloquea el clic en el botón de la esquina */}
             {!isFullscreen && <div className="absolute top-0 right-0 w-12 h-12 md:w-16 md:h-16 z-20 cursor-default bg-transparent" />}
 

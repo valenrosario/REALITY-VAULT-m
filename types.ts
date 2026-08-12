@@ -4,6 +4,7 @@ export interface Episode {
   title: string;
   thumbnail: string;
   videoUrl: string;
+  embedCode?: string;
   duration: string;
   description: string;
   badge?: string;
