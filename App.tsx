@@ -1402,17 +1402,29 @@ function App() {
   const renderWatch = () => {
     if (!activeEpisode) return null;
     
-    // Fix Google Drive URLs: handle different formats and ensure /preview is used for embedding
+    // Fix Google Drive and YouTube URLs for embedding
     let processedVideoUrl = activeEpisode.videoUrl;
-    if (processedVideoUrl && processedVideoUrl.includes('drive.google.com')) {
-      if (processedVideoUrl.includes('/view')) {
-        processedVideoUrl = processedVideoUrl.replace(/\/view.*/, '/preview');
-      } else if (processedVideoUrl.includes('/open?id=')) {
-        processedVideoUrl = processedVideoUrl.replace('/open?id=', '/file/d/').split('&')[0] + '/preview';
-      } else {
-        processedVideoUrl = processedVideoUrl.split('?')[0];
-        if (!processedVideoUrl.endsWith('/preview')) {
-          processedVideoUrl += '/preview';
+
+    if (processedVideoUrl) {
+      // 1. Formateo para Google Drive (MANTENER LO EXISTENTE)
+      if (processedVideoUrl.includes('drive.google.com')) {
+        if (processedVideoUrl.includes('/view')) {
+          processedVideoUrl = processedVideoUrl.replace(/\/view.*/, '/preview');
+        } else if (processedVideoUrl.includes('/open?id=')) {
+          processedVideoUrl = processedVideoUrl.replace('/open?id=', '/file/d/').split('&')[0] + '/preview';
+        } else {
+          processedVideoUrl = processedVideoUrl.split('?')[0];
+          if (!processedVideoUrl.endsWith('/preview')) {
+            processedVideoUrl += '/preview';
+          }
+        }
+      }
+      // 2. NUEVO: Formateo automático para YouTube
+      else if (processedVideoUrl.includes('youtube.com') || processedVideoUrl.includes('youtu.be')) {
+        const ytRegex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i;
+        const match = processedVideoUrl.match(ytRegex);
+        if (match && match[1]) {
+          processedVideoUrl = `https://www.youtube.com/embed/${match[1]}?rel=0`;
         }
       }
     }
