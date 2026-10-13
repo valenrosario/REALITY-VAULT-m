@@ -34,3 +34,8 @@ body {
 ::-webkit-scrollbar-thumb {
   @apply bg-white/20 rounded-full hover:bg-white/40;
 }
+/* Barra de progreso del carrusel principal */
+@keyframes hero-progress {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}

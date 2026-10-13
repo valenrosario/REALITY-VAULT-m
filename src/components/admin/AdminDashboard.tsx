@@ -23,10 +23,11 @@ import {
   ArrowLeft
 } from 'lucide-react';
 import { db } from '../../../firebase';
-import { collection, getDocs, doc, setDoc, writeBatch, onSnapshot, deleteDoc, updateDoc } from 'firebase/firestore';
+import { collection, getDocs, getDoc, doc, setDoc, writeBatch, onSnapshot, deleteDoc, updateDoc } from 'firebase/firestore';
 import { Series, Episode, Season, AppConfig, GalleryImage } from '../../../types';
 import { SERIES_DATA, MARQUEE_TEXT, SOCIAL_LINKS } from '../../../constants';
 import { uploadToCloudinary } from '../../utils/cloudinary';
+import { resolveHeroBanner } from '../../utils/heroBanner';
 
 import {
   DndContext,
@@ -401,7 +402,7 @@ export const AdminDashboard = ({ onExit }: { onExit?: () => void }) => {
                 animate={{ opacity: 1, y: 0 }} 
                 exit={{ opacity: 0, y: -15 }}
               >
-                <BannersManager banners={banners} series={series} />
+                <BannersManager banners={banners} series={series} config={config} />
               </motion.div>
             )}
 
@@ -644,10 +645,40 @@ const SortableSeriesCard: React.FC<{ series: Series, onClick: () => void, onTogg
 // ==========================================
 // BANNERS MANAGER
 // ==========================================
-const BannersManager = ({ banners, series }: { banners: any[], series: any[] }) => {
+const BannersManager = ({ banners, series, config }: { banners: any[], series: any[], config: AppConfig | null }) => {
   const showToast = useContext(ToastContext);
   const [editingBanner, setEditingBanner] = useState<any | null>(null);
   const [items, setItems] = useState<any[]>(banners);
+  const [autoplaySeconds, setAutoplaySeconds] = useState<number>(config?.heroAutoplaySeconds ?? 15);
+  const [isSavingAutoplay, setIsSavingAutoplay] = useState(false);
+
+  useEffect(() => {
+    setAutoplaySeconds(config?.heroAutoplaySeconds ?? 15);
+  }, [config?.heroAutoplaySeconds]);
+
+  const saveAutoplay = async () => {
+    setIsSavingAutoplay(true);
+    try {
+      const value = Math.max(0, Math.min(120, Math.round(Number(autoplaySeconds) || 0)));
+      await setDoc(doc(db, 'appConfig', 'global'), { heroAutoplaySeconds: value }, { merge: true });
+      setAutoplaySeconds(value);
+      showToast('¡Velocidad del carrusel guardada!', 'success');
+    } catch (err) {
+      console.error(err);
+      showToast('Error guardando la velocidad', 'error');
+    } finally {
+      setIsSavingAutoplay(false);
+    }
+  };
+
+  const toggleVisibility = async (banner: any) => {
+    try {
+      await updateDoc(doc(db, 'heroBanners', banner.id), { isVisible: banner.isVisible === false });
+    } catch (err) {
+      console.error(err);
+      showToast('Error cambiando la visibilidad', 'error');
+    }
+  };
 
   useEffect(() => {
     setItems(banners);
@@ -656,6 +687,8 @@ const BannersManager = ({ banners, series }: { banners: any[], series: any[] }) 
   useEffect(() => {
     const initializeBanners = async () => {
       try {
+        const configSnap = await getDoc(doc(db, 'appConfig', 'global'));
+        if (configSnap.exists() && configSnap.data()?.heroBannersSeeded) return;
         const snap = await getDocs(collection(db, 'heroBanners'));
         if (snap.empty) {
           const batch = writeBatch(db);
@@ -665,6 +698,7 @@ const BannersManager = ({ banners, series }: { banners: any[], series: any[] }) 
             const newId = `banner-migrated-${serie.id}`;
             const newBanner = {
               id: newId,
+              seriesId: serie.id,
               order: index,
               desktopImage: serie.bannerImage || serie.coverImage || 'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=1200&auto=format&fit=crop&q=80',
               mobileImage: serie.mobileBannerImage || serie.coverImage || 'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=600&auto=format&fit=crop&q=80',
@@ -680,6 +714,7 @@ const BannersManager = ({ banners, series }: { banners: any[], series: any[] }) 
           
           await batch.commit();
         }
+        await setDoc(doc(db, 'appConfig', 'global'), { heroBannersSeeded: true }, { merge: true });
       } catch (err) {
         console.error('Error initializing banners:', err);
       }
@@ -707,8 +742,11 @@ const BannersManager = ({ banners, series }: { banners: any[], series: any[] }) 
       });
       try {
         await batch.commit();
+        showToast('Orden actualizado', 'success');
       } catch (error) {
         console.error("Error reordenando banners:", error);
+        showToast('Error reordenando banners', 'error');
+        setItems(banners);
       }
     }
   };
@@ -722,6 +760,7 @@ const BannersManager = ({ banners, series }: { banners: any[], series: any[] }) 
       mobileImage: 'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=600&auto=format&fit=crop&q=80',
       title: 'Nuevo Banner',
       logoSize: 'medium',
+      overlayOpacity: 35,
       isVisible: true
     };
     try {
@@ -742,7 +781,7 @@ const BannersManager = ({ banners, series }: { banners: any[], series: any[] }) 
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-4xl font-gravity text-slate-900">Gestor de Banners</h1>
-          <p className="text-slate-500 text-xs mt-1">Arrastra para reordenar los banners del carrusel principal.</p>
+          <p className="text-slate-500 text-xs mt-1">Arrastra para reordenar los banners del carrusel principal. Haz clic en uno para editarlo.</p>
         </div>
         <div className="flex gap-3">
           <button 
@@ -754,20 +793,56 @@ const BannersManager = ({ banners, series }: { banners: any[], series: any[] }) 
         </div>
       </div>
 
+      <div className="bg-white/70 backdrop-blur-xl border border-slate-200 p-5 rounded-3xl shadow-sm flex flex-col md:flex-row md:items-end gap-4">
+        <div className="flex-1">
+          <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Cambio automático (segundos)</label>
+          <input
+            type="number"
+            min={0}
+            max={120}
+            value={autoplaySeconds}
+            onChange={e => setAutoplaySeconds(Number(e.target.value))}
+            className="w-full md:w-48 bg-white border border-slate-200 rounded-2xl px-4 py-3 focus:outline-none focus:border-[#5500bd] text-sm text-slate-900"
+          />
+          <p className="text-slate-400 text-[11px] mt-1">Cada cuánto pasa al siguiente banner. 0 = no avanza solo. Se pausa al pasar el mouse.</p>
+        </div>
+        <button
+          onClick={saveAutoplay}
+          disabled={isSavingAutoplay}
+          className="bg-black text-white hover:bg-zinc-800 font-bold py-2.5 px-6 rounded-lg transition-colors shadow-md flex items-center gap-2 text-xs disabled:opacity-50 self-start md:self-auto"
+        >
+          {isSavingAutoplay ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
+          Guardar
+        </button>
+      </div>
+
+      {items.length === 0 ? (
+        <div className="bg-white/70 border border-dashed border-slate-300 rounded-3xl p-10 text-center text-slate-500 text-sm">
+          No hay banners. En la página de inicio se muestran los banners por defecto hasta que crees uno.
+        </div>
+      ) : (
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-        <SortableContext items={items.map(i => i.id)} strategy={verticalListSortingStrategy}>
+        <SortableContext items={items.map(i => i.id)} strategy={rectSortingStrategy}>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {items.map(b => (
-              <SortableBannerCard key={b.id} banner={b} onClick={() => setEditingBanner(b)} />
+            {items.map((b, i) => (
+              <SortableBannerCard
+                key={b.id}
+                banner={b}
+                position={i + 1}
+                seriesTitle={series.find(s => s.id === (b.seriesId || String(b.id).replace('banner-migrated-', '')))?.title}
+                onClick={() => setEditingBanner(b)}
+                onToggleVisibility={() => toggleVisibility(b)}
+              />
             ))}
           </div>
         </SortableContext>
       </DndContext>
+      )}
     </div>
   );
 };
 
-const SortableBannerCard: React.FC<{ banner: any, onClick: () => void }> = ({ banner, onClick }) => {
+const SortableBannerCard: React.FC<{ banner: any, position: number, seriesTitle?: string, onClick: () => void, onToggleVisibility: () => void }> = ({ banner, position, seriesTitle, onClick, onToggleVisibility }) => {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: banner.id });
   const style = { transform: CSS.Transform.toString(transform), transition };
   const isHidden = banner.isVisible === false;
@@ -779,19 +854,26 @@ const SortableBannerCard: React.FC<{ banner: any, onClick: () => void }> = ({ ba
     >
       <div 
         {...attributes} {...listeners}
-        className="absolute top-2 left-2 z-20 bg-white/90 backdrop-blur-md p-1.5 rounded-lg cursor-grab hover:bg-[#0281c8]/10 transition-colors border border-slate-200 shadow-sm"
+        className="absolute top-2 left-2 z-20 bg-white/90 backdrop-blur-md p-1.5 rounded-lg cursor-grab hover:bg-[#0281c8]/10 transition-colors border border-slate-200 shadow-sm flex items-center gap-1"
       >
         <GripVertical size={16} className="text-slate-700" />
+        <span className="text-[10px] font-black text-slate-700 pr-1">#{position}</span>
       </div>
       
-      {isHidden && (
-        <div className="absolute top-2 right-2 z-20 bg-slate-800 text-white text-[10px] font-bold px-2 py-1 rounded-md">
-          Oculto
-        </div>
-      )}
+      <button
+        onClick={(e) => { e.stopPropagation(); onToggleVisibility(); }}
+        title={isHidden ? 'Mostrar en el inicio' : 'Ocultar del inicio'}
+        className={`absolute top-2 right-2 z-20 text-[10px] font-bold px-2 py-1 rounded-md flex items-center gap-1 shadow-sm transition-colors ${isHidden ? 'bg-slate-800 text-white' : 'bg-white/90 text-slate-700 hover:bg-white border border-slate-200'}`}
+      >
+        {isHidden ? <><EyeOff size={12} /> Oculto</> : <><Eye size={12} /> Visible</>}
+      </button>
 
-      <div className="aspect-video relative" onClick={onClick}>
-        <img src={banner.desktopImage} alt={banner.title} className="w-full h-full object-cover" />
+      <div className="aspect-video relative bg-slate-100" onClick={onClick}>
+        {banner.desktopImage ? (
+          <img src={banner.desktopImage} alt={banner.title} className="w-full h-full object-cover" />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center"><ImageIcon className="text-slate-300" size={40} /></div>
+        )}
         <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
           <span className="font-bold bg-[#fe5802] text-white text-xs px-3 py-1.5 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-all transform group-hover:scale-105">
             Editar Banner
@@ -800,24 +882,141 @@ const SortableBannerCard: React.FC<{ banner: any, onClick: () => void }> = ({ ba
       </div>
       <div className="p-3 bg-white" onClick={onClick}>
         <h3 className="font-bold text-sm truncate text-slate-900">{banner.title || 'Sin Título'}</h3>
+        <p className="text-[11px] text-slate-400 truncate">{seriesTitle ? `Serie: ${seriesTitle}` : banner.linkUrl ? `Enlace: ${banner.linkUrl}` : 'Sin serie vinculada'}</p>
       </div>
     </div>
   );
 };
 
+const BannerPreview = ({ banner, series }: { banner: any, series: Series[] }) => {
+  const [mode, setMode] = useState<'desktop' | 'mobile'>('desktop');
+  const r = resolveHeroBanner(banner, series);
+  const overlay = r.overlayOpacity / 100;
+  const meta = (
+    <div className={`flex flex-wrap items-center gap-1.5 text-[9px] font-medium text-gray-200 ${mode === 'mobile' ? 'justify-center' : ''}`}>
+      <span className="bg-white/20 px-1 py-0.5 rounded text-white border border-white/10">{r.badge}</span>
+      {r.metaText ? <span>{r.metaText}</span> : <><span>{r.year}</span><span>•</span><span>{r.genre}</span></>}
+      {r.featureBadges.map(fb => <span key={fb} className="px-1 py-0.5 rounded border border-white/30">{fb}</span>)}
+    </div>
+  );
+  const buttons = (r.series || r.linkUrl) && (mode === 'mobile' || r.showDesktopButtons) && (
+    <div className={`flex gap-1.5 mt-2 ${mode === 'mobile' ? 'w-full' : ''}`}>
+      <span className={`bg-white text-black font-black text-[8px] uppercase px-3 py-1.5 rounded-md text-center ${mode === 'mobile' ? 'flex-[3]' : ''}`}>▶ {r.primaryButtonText}</span>
+      {r.showMyListButton && <span className={`bg-zinc-700/70 text-white font-black text-[8px] uppercase px-3 py-1.5 rounded-md text-center ${mode === 'mobile' ? 'flex-[2]' : ''}`}>+ Mi Lista</span>}
+    </div>
+  );
+
+  return (
+    <div className="bg-white/70 backdrop-blur-xl border border-slate-200 p-5 rounded-3xl shadow-sm space-y-3">
+      <div className="flex items-center justify-between">
+        <h3 className="text-xl font-gravity text-[#0281c8]">Vista previa</h3>
+        <div className="flex bg-slate-100 rounded-xl p-1 text-xs font-bold">
+          {(['desktop', 'mobile'] as const).map(m => (
+            <button key={m} onClick={() => setMode(m)} className={`px-3 py-1 rounded-lg transition-colors ${mode === m ? 'bg-white shadow text-slate-900' : 'text-slate-500'}`}>
+              {m === 'desktop' ? 'Escritorio' : 'Móvil'}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className={`relative bg-black rounded-2xl overflow-hidden mx-auto ${mode === 'desktop' ? 'aspect-[16/7] w-full max-w-3xl' : 'aspect-[3/4] w-56'}`}>
+        {(mode === 'desktop' ? r.desktopImage : r.mobileImage) && (
+          <img src={mode === 'desktop' ? r.desktopImage : r.mobileImage} alt="" className="absolute inset-0 w-full h-full object-cover" referrerPolicy="no-referrer" />
+        )}
+        {overlay > 0 && (
+          <div className="absolute inset-0" style={{ background: mode === 'desktop'
+            ? `linear-gradient(90deg, rgba(0,0,0,${overlay}) 0%, rgba(0,0,0,${overlay * 0.6}) 35%, rgba(0,0,0,0) 65%), linear-gradient(0deg, rgba(0,0,0,${overlay * 0.8}) 0%, rgba(0,0,0,0) 30%)`
+            : `linear-gradient(0deg, rgba(0,0,0,${Math.min(1, overlay * 1.4)}) 0%, rgba(0,0,0,0) 45%)` }} />
+        )}
+        {mode === 'desktop' ? (
+          <div className="absolute inset-0 flex flex-col justify-center items-start pl-[8%] pr-[40%] pt-6 gap-1">
+            {r.topBadge && <span className="bg-pink-500 text-white text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded">{r.topBadge}</span>}
+            {r.logoUrl
+              ? <img src={r.logoUrl} alt="" className="object-contain object-left w-auto" style={{ maxHeight: { small: 28, medium: 40, large: 52, xlarge: 64 }[r.logoSize], maxWidth: '100%' }} referrerPolicy="no-referrer" />
+              : <span className="font-gravity text-white text-lg leading-none">{r.title}</span>}
+            <span className="font-gravity text-white text-[10px]">{r.subtitle}</span>
+            {meta}
+            {r.description && <p className="text-gray-300 text-[8px] line-clamp-2 leading-snug">{r.description}</p>}
+            {buttons}
+            {r.footerText && <p className="text-white/70 text-[8px]">{r.footerText}</p>}
+          </div>
+        ) : (
+          <div className="absolute inset-x-0 bottom-0 p-3 flex flex-col items-center gap-1.5">
+            {r.topBadge && <span className="bg-pink-500 text-white text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded">{r.topBadge}</span>}
+            {r.mobileLogoUrl
+              ? <img src={r.mobileLogoUrl} alt="" className="object-contain w-auto" style={{ maxHeight: { small: 24, medium: 34, large: 44, xlarge: 54 }[r.logoSize], maxWidth: '90%' }} referrerPolicy="no-referrer" />
+              : <span className="font-gravity text-white text-base leading-none text-center">{r.title}</span>}
+            {meta}
+            {r.footerText && <p className="text-white/80 text-[8px] text-center">{r.footerText}</p>}
+            {buttons}
+          </div>
+        )}
+      </div>
+      <p className="text-[11px] text-slate-400">Aproximación de cómo se verá en la página de inicio. Los campos vacíos usan los datos de la serie vinculada.</p>
+    </div>
+  );
+};
+
+const BannerField = ({ label, hint, children }: { label: string, hint?: string, children: React.ReactNode }) => (
+  <div>
+    <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">{label}</label>
+    {children}
+    {hint && <p className="text-[11px] text-slate-400 mt-1">{hint}</p>}
+  </div>
+);
+
+const BannerToggle = ({ label, hint, checked, onChange }: { label: string, hint?: string, checked: boolean, onChange: (v: boolean) => void }) => (
+  <label className="flex items-start gap-3 cursor-pointer select-none">
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      onClick={() => onChange(!checked)}
+      className={`mt-0.5 w-10 h-6 rounded-full relative transition-colors shrink-0 ${checked ? 'bg-[#5500bd]' : 'bg-slate-300'}`}
+    >
+      <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-all ${checked ? 'left-[18px]' : 'left-0.5'}`} />
+    </button>
+    <span>
+      <span className="block text-sm font-bold text-slate-800">{label}</span>
+      {hint && <span className="block text-[11px] text-slate-400">{hint}</span>}
+    </span>
+  </label>
+);
+
 const BannerEditor = ({ banner, onBack, series }: { banner: any, onBack: () => void, series: any[] }) => {
   const showToast = useContext(ToastContext);
   const requestConfirm = useContext(ConfirmContext);
-  const [formData, setFormData] = useState<any>({ isVisible: true, ...banner });
+  const initialData = {
+    isVisible: true,
+    overlayOpacity: 35,
+    ...banner,
+    // Banners migrados guardaban la serie solo en el id: la mostramos vinculada
+    seriesId: banner.seriesId || (String(banner.id || '').startsWith('banner-migrated-') ? String(banner.id).slice('banner-migrated-'.length) : ''),
+  };
+  const [formData, setFormData] = useState<any>(initialData);
+  const [savedSnapshot, setSavedSnapshot] = useState<string>(() => JSON.stringify(initialData));
   const [isSaving, setIsSaving] = useState(false);
 
+  const hasChanges = JSON.stringify(formData) !== savedSnapshot;
+  const linkedSeries: Series | undefined = series.find((s: Series) => s.id === formData.seriesId);
+  const set = (patch: Record<string, any>) => setFormData((prev: any) => ({ ...prev, ...patch }));
+  const inputClass = "w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 focus:outline-none focus:border-[#5500bd] text-sm text-slate-900";
+
   const handleSave = async () => {
+    if (!formData.desktopImage && !formData.mobileImage && !linkedSeries) {
+      showToast('Agrega al menos una imagen o vincula una serie', 'error');
+      return;
+    }
+    if (formData.linkUrl && !/^https?:\/\//i.test(formData.linkUrl)) {
+      showToast('El enlace debe empezar con http:// o https://', 'error');
+      return;
+    }
     setIsSaving(true);
     try {
       const dataToSave = Object.fromEntries(
         Object.entries(formData).map(([k, v]) => [k, v === undefined ? '' : v])
       );
       await setDoc(doc(db, 'heroBanners', formData.id), dataToSave as any);
+      setSavedSnapshot(JSON.stringify(formData));
       showToast('¡Banner guardado!', 'success');
     } catch (e) {
       console.error(e);
@@ -827,108 +1026,177 @@ const BannerEditor = ({ banner, onBack, series }: { banner: any, onBack: () => v
     }
   };
 
+  const handleBack = () => {
+    if (hasChanges) {
+      requestConfirm('Tienes cambios sin guardar. ¿Salir sin guardar?', onBack);
+    } else {
+      onBack();
+    }
+  };
+
   const handleDelete = () => {
     requestConfirm('¿Eliminar banner?', async () => {
       try {
         await deleteDoc(doc(db, 'heroBanners', formData.id));
+        showToast('Banner eliminado', 'success');
         onBack();
       } catch (err) {
         console.error(err);
+        showToast('Error eliminando banner', 'error');
       }
     });
   };
 
+  const fillFromSeries = () => {
+    if (!linkedSeries) return;
+    set({
+      title: linkedSeries.title || '',
+      desktopImage: linkedSeries.bannerImage || linkedSeries.coverImage || formData.desktopImage || '',
+      mobileImage: linkedSeries.mobileBannerImage || linkedSeries.coverImage || formData.mobileImage || '',
+      logoUrl: linkedSeries.logoUrl || '',
+      mobileLogoUrl: linkedSeries.mobileLogoUrl || '',
+      subtitle: linkedSeries.bannerText || '',
+      badge: linkedSeries.contentRating || '',
+      description: linkedSeries.description || '',
+      year: linkedSeries.year || '',
+      genre: linkedSeries.genre || '',
+    });
+    showToast('Datos copiados de la serie (recuerda guardar)', 'success');
+  };
+
+  const comingSoonValue = formData.isComingSoon === true ? 'yes' : formData.isComingSoon === false ? 'no' : 'auto';
+
   return (
     <div className="pb-24 space-y-8">
-      <div className="flex justify-between items-center bg-white/70 backdrop-blur-xl border border-slate-200 p-4 rounded-3xl sticky top-0 z-40 shadow-sm">
-        <button onClick={onBack} className="text-slate-500 hover:text-slate-900 flex items-center gap-2 font-bold text-sm px-3 py-1.5 rounded-xl hover:bg-slate-100 transition-colors">
+      <div className="flex flex-wrap gap-3 justify-between items-center bg-white/70 backdrop-blur-xl border border-slate-200 p-4 rounded-3xl sticky top-0 z-40 shadow-sm">
+        <button onClick={handleBack} className="text-slate-500 hover:text-slate-900 flex items-center gap-2 font-bold text-sm px-3 py-1.5 rounded-xl hover:bg-slate-100 transition-colors">
           ← Volver a Banners
         </button>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          {hasChanges && <span className="text-[11px] font-bold text-amber-600">Cambios sin guardar</span>}
           <button 
-            onClick={() => setFormData({...formData, isVisible: !formData.isVisible})} 
+            onClick={() => set({ isVisible: !formData.isVisible })} 
             className={`px-4 py-2 rounded-2xl flex items-center gap-2 font-bold text-xs transition-all border ${formData.isVisible ? 'bg-slate-100 border-slate-200 text-slate-600' : 'bg-slate-800 text-white border-slate-800'}`}
           >
-            {formData.isVisible ? 'Ocultar' : 'Mostrar'}
+            {formData.isVisible ? <><EyeOff size={14} /> Ocultar</> : <><Eye size={14} /> Mostrar</>}
           </button>
           <button onClick={handleDelete} className="bg-[#f6042e]/10 hover:bg-[#f6042e]/20 text-[#f6042e] px-4 py-2 rounded-2xl flex items-center gap-2 font-bold text-xs transition-all border border-[#f6042e]/20">
             <Trash2 size={16} /> Eliminar
           </button>
-          <button onClick={handleSave} disabled={isSaving} className="bg-black text-white hover:bg-zinc-800 font-bold py-2.5 px-6 rounded-lg transition-colors shadow-md flex items-center gap-2 text-xs disabled:opacity-50">
+          <button onClick={handleSave} disabled={isSaving || !hasChanges} className="bg-black text-white hover:bg-zinc-800 font-bold py-2.5 px-6 rounded-lg transition-colors shadow-md flex items-center gap-2 text-xs disabled:opacity-50">
             {isSaving ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
-            <span>Guardar</span>
+            <span>{hasChanges ? 'Guardar' : 'Guardado'}</span>
           </button>
         </div>
       </div>
 
+      <BannerPreview banner={formData} series={series} />
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-white/70 backdrop-blur-xl border border-slate-200 p-6 rounded-3xl space-y-4 shadow-sm">
-          <h3 className="text-xl font-gravity text-[#0281c8] mb-2">Imágenes</h3>
-          <ImageUploader label="Imagen Desktop" url={formData.desktopImage} onUpload={(url) => setFormData({...formData, desktopImage: url})} />
-          <ImageUploader label="Imagen Mobile" url={formData.mobileImage} onUpload={(url) => setFormData({...formData, mobileImage: url})} />
-          <ImageUploader label="Logo (Opcional)" url={formData.logoUrl || ''} onUpload={(url) => setFormData({...formData, logoUrl: url})} />
+        <div className="space-y-6">
+          <div className="bg-white/70 backdrop-blur-xl border border-slate-200 p-6 rounded-3xl space-y-4 shadow-sm">
+            <h3 className="text-xl font-gravity text-[#0281c8] mb-2">Serie y acción</h3>
+            <BannerField label="Serie Vinculada" hint="Al hacer clic en el banner se abre esta serie. Los campos vacíos toman sus datos.">
+              <select value={formData.seriesId || ''} onChange={e => set({ seriesId: e.target.value })} className={inputClass}>
+                <option value="">Ninguna (Banner estático)</option>
+                {series.map(s => (
+                  <option key={s.id} value={s.id}>{s.title}</option>
+                ))}
+              </select>
+            </BannerField>
+            {linkedSeries && (
+              <button onClick={fillFromSeries} className="text-xs font-bold text-[#5500bd] hover:underline flex items-center gap-1">
+                <Sparkles size={14} /> Rellenar campos con los datos de "{linkedSeries.title}"
+              </button>
+            )}
+            {!formData.seriesId && (
+              <BannerField label="Enlace externo (Opcional)" hint="Solo si no hay serie vinculada. Se abre en una pestaña nueva.">
+                <input type="url" value={formData.linkUrl || ''} onChange={e => set({ linkUrl: e.target.value })} placeholder="https://..." className={inputClass} />
+              </BannerField>
+            )}
+            <BannerField label="Estado">
+              <select
+                value={comingSoonValue}
+                onChange={e => set({ isComingSoon: e.target.value === 'auto' ? undefined : e.target.value === 'yes' })}
+                className={inputClass}
+              >
+                <option value="auto">Automático (según la serie)</option>
+                <option value="no">Disponible</option>
+                <option value="yes">Próximamente</option>
+              </select>
+            </BannerField>
+            <BannerField label="Texto del botón principal" hint="Vacío = «Reproducir» o «Próximamente».">
+              <input type="text" value={formData.primaryButtonText || ''} onChange={e => set({ primaryButtonText: e.target.value })} placeholder="Ej: Ver ahora" className={inputClass} />
+            </BannerField>
+            <BannerToggle label="Mostrar botones en escritorio" checked={formData.showDesktopButtons !== false} onChange={v => set({ showDesktopButtons: v })} />
+            <BannerToggle label="Mostrar botón «Mi Lista»" hint="Solo aparece si hay una serie vinculada disponible." checked={formData.showMyListButton !== false} onChange={v => set({ showMyListButton: v })} />
+          </div>
+
+          <div className="bg-white/70 backdrop-blur-xl border border-slate-200 p-6 rounded-3xl space-y-4 shadow-sm">
+            <h3 className="text-xl font-gravity text-[#0281c8] mb-2">Imágenes</h3>
+            <ImageUploader label="Imagen Desktop (horizontal)" url={formData.desktopImage || ''} onUpload={(url) => set({ desktopImage: url })} />
+            <ImageUploader label="Imagen Mobile (vertical 3:4)" url={formData.mobileImage || ''} onUpload={(url) => set({ mobileImage: url })} />
+            <ImageUploader label="Logo (Opcional)" url={formData.logoUrl || ''} onUpload={(url) => set({ logoUrl: url })} />
+            <ImageUploader label="Logo Mobile (Opcional)" url={formData.mobileLogoUrl || ''} onUpload={(url) => set({ mobileLogoUrl: url })} />
+            <BannerField label="Tamaño del Logo">
+              <select value={formData.logoSize || 'medium'} onChange={e => set({ logoSize: e.target.value })} className={inputClass}>
+                <option value="small">Pequeño</option>
+                <option value="medium">Mediano</option>
+                <option value="large">Grande</option>
+                <option value="xlarge">Extra Grande</option>
+              </select>
+            </BannerField>
+            <BannerField label={`Oscurecer imagen: ${formData.overlayOpacity ?? 35}%`} hint="Degradado oscuro detrás del texto para que se lea mejor. 0 = sin degradado.">
+              <input type="range" min={0} max={90} step={5} value={formData.overlayOpacity ?? 35} onChange={e => set({ overlayOpacity: Number(e.target.value) })} className="w-full accent-[#5500bd]" />
+            </BannerField>
+          </div>
         </div>
 
-        <div className="bg-white/70 backdrop-blur-xl border border-slate-200 p-6 rounded-3xl space-y-4 shadow-sm">
-          <h3 className="text-xl font-gravity text-[#0281c8] mb-2">Textos y Logo</h3>
-          
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Serie Vinculada (Opcional)</label>
-            <select 
-              value={formData.seriesId || ''} 
-              onChange={e => setFormData({...formData, seriesId: e.target.value})}
-              className="w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 focus:outline-none focus:border-[#5500bd] text-sm text-slate-900"
-            >
-              <option value="">Ninguna (Banner estático)</option>
-              {series.map(s => (
-                <option key={s.id} value={s.id}>{s.title}</option>
-              ))}
-            </select>
-          </div>
-          
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Tamaño del Logo</label>
-            <select 
-              value={formData.logoSize || 'medium'} 
-              onChange={e => setFormData({...formData, logoSize: e.target.value})}
-              className="w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 focus:outline-none focus:border-[#5500bd] text-sm text-slate-900"
-            >
-              <option value="small">Pequeño</option>
-              <option value="medium">Mediano</option>
-              <option value="large">Grande</option>
-              <option value="xlarge">Extra Grande</option>
-            </select>
+        <div className="bg-white/70 backdrop-blur-xl border border-slate-200 p-6 rounded-3xl space-y-4 shadow-sm self-start">
+          <h3 className="text-xl font-gravity text-[#0281c8] mb-2">Textos</h3>
+
+          <BannerField label="Título" hint="Se muestra si no hay logo.">
+            <input type="text" value={formData.title || ''} onChange={e => set({ title: e.target.value })} placeholder={linkedSeries?.title} className={inputClass} />
+          </BannerField>
+
+          <BannerField label="Top Badge (Arriba del logo)">
+            <input type="text" value={formData.topBadge || ''} onChange={e => set({ topBadge: e.target.value })} placeholder="Ej: Nueva Temporada" className={inputClass} />
+          </BannerField>
+
+          <BannerField label="Subtítulo (Debajo del logo)">
+            <input type="text" value={formData.subtitle || ''} onChange={e => set({ subtitle: e.target.value })} placeholder={linkedSeries?.bannerText || 'Todos los episodios disponibles'} className={inputClass} />
+          </BannerField>
+
+          <div className="grid grid-cols-3 gap-3">
+            <BannerField label="Clasificación">
+              <input type="text" value={formData.badge || ''} onChange={e => set({ badge: e.target.value })} placeholder={linkedSeries?.contentRating || 'TV-14'} className={inputClass} />
+            </BannerField>
+            <BannerField label="Año">
+              <input type="text" value={formData.year || ''} onChange={e => set({ year: e.target.value })} placeholder={linkedSeries?.year || '2000'} className={inputClass} />
+            </BannerField>
+            <BannerField label="Género">
+              <input type="text" value={formData.genre || ''} onChange={e => set({ genre: e.target.value })} placeholder={linkedSeries?.genre || 'Reality'} className={inputClass} />
+            </BannerField>
           </div>
 
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Título</label>
-            <input type="text" value={formData.title || ''} onChange={e => setFormData({...formData, title: e.target.value})} className="w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 focus:outline-none focus:border-[#5500bd] text-sm text-slate-900" />
-          </div>
+          <BannerField label="Texto de datos (Reemplaza Año • Género)" hint="Opcional. Ej: «Segunda Temporada Disponible».">
+            <input type="text" value={formData.bannerCustomText || ''} onChange={e => set({ bannerCustomText: e.target.value })} className={inputClass} />
+          </BannerField>
 
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Subtítulo</label>
-            <input type="text" value={formData.subtitle || ''} onChange={e => setFormData({...formData, subtitle: e.target.value})} className="w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 focus:outline-none focus:border-[#5500bd] text-sm text-slate-900" />
-          </div>
+          <StringArrayInput
+            label="Feature Badges (Separados por coma)"
+            value={formData.featureBadges || []}
+            onChange={(val) => set({ featureBadges: val })}
+            placeholder="Ej: HD, CC, 16+"
+          />
 
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Badge (ej: TV-MA)</label>
-            <input type="text" value={formData.badge || ''} onChange={e => setFormData({...formData, badge: e.target.value})} className="w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 focus:outline-none focus:border-[#5500bd] text-sm text-slate-900" />
-          </div>
+          <BannerField label="Descripción" hint="Solo en escritorio. Vacío = descripción de la serie.">
+            <textarea value={formData.description || ''} onChange={e => set({ description: e.target.value })} placeholder={linkedSeries?.description} className={`${inputClass} resize-none h-24`} />
+          </BannerField>
 
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Top Badge (Arriba del título)</label>
-            <input type="text" value={formData.topBadge || ''} onChange={e => setFormData({...formData, topBadge: e.target.value})} placeholder="Ej: Nueva Temporada" className="w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 focus:outline-none focus:border-[#5500bd] text-sm text-slate-900" />
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Feature Badges (Separados por coma)</label>
-            <input type="text" value={(formData.featureBadges || []).join(', ')} onChange={e => setFormData({...formData, featureBadges: e.target.value.split(',').map(s => s.trim()).filter(Boolean)})} placeholder="Ej: HD, CC, 16+" className="w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 focus:outline-none focus:border-[#5500bd] text-sm text-slate-900" />
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Texto Customizado (Pie)</label>
-            <textarea value={formData.customText || ''} onChange={e => setFormData({...formData, customText: e.target.value})} className="w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 focus:outline-none focus:border-[#5500bd] text-sm text-slate-900 resize-none h-20" />
-          </div>
+          <BannerField label="Texto al pie (Opcional)" hint="Línea pequeña debajo de los botones.">
+            <textarea value={formData.customText || ''} onChange={e => set({ customText: e.target.value })} className={`${inputClass} resize-none h-20`} />
+          </BannerField>
         </div>
       </div>
     </div>
