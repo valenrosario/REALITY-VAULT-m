@@ -86,6 +86,16 @@ export interface HeroBanner {
   bannerCustomText?: string;
   isThirdBanner?: boolean;
   isFourthBanner?: boolean;
+  description?: string;
+  mobileLogoUrl?: string;
+  year?: string;
+  genre?: string;
+  isComingSoon?: boolean;
+  primaryButtonText?: string;
+  linkUrl?: string;
+  showMyListButton?: boolean;
+  showDesktopButtons?: boolean;
+  overlayOpacity?: number;
 }
 
 export interface User {
@@ -119,6 +129,8 @@ export interface AppConfig {
   marqueeText: string;
   socialLinks: SocialLink[];
   retroSectionTitle?: string;
+  heroAutoplaySeconds?: number;
+  heroBannersSeeded?: boolean;
 }
 
 export interface Sparkle {

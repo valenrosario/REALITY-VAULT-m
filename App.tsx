@@ -33,6 +33,7 @@ import {
 import { APP_NAME, APP_LOGO_URL, AVATAR_OPTIONS, SOCIAL_LINKS, MARQUEE_TEXT, SOUND_EFFECTS } from './constants';
 import { Series, Episode, AuthState, Season, User as UserType, AppConfig } from './types';
 import SeriesDetailView from './src/components/SeriesDetailView';
+import HeroCarousel from './src/components/HeroCarousel';
 // import BlingCursor from './BlingCursor';
 import { db, auth, handleFirestoreError, OperationType } from './firebase';
 import { doc, getDoc, setDoc, updateDoc, collection, onSnapshot } from 'firebase/firestore';
@@ -588,7 +589,7 @@ const HomeView = ({
       bannerText: "Segunda Temporada Disponible",
       isThirdBanner: true
     } as any,
-    (seriesData.find(s => s.id === "serie-3") || { id: "serie-3", title: "Serie 3" }),
+    { ...(seriesData.find(s => s.id === "serie-3") || { id: "serie-3", title: "Serie 3" }), isComingSoon: true } as any,
     (seriesData.find(s => s.id === "serie-1") || { id: "serie-1", title: "Serie 1" }),
     {
       ...(seriesData.find(s => s.id === "serie-2") || {}),
@@ -602,71 +603,7 @@ const HomeView = ({
     } as any
   ];
 
-  const activeLiveBanners = heroBanners ? heroBanners.filter((b: any) => {
-    if (b.isVisible === false) return false;
-    return Boolean(
-      (typeof b.desktopImage === 'string' && b.desktopImage.trim()) ||
-      (typeof b.bannerImage === 'string' && b.bannerImage.trim()) ||
-      (typeof b.coverImage === 'string' && b.coverImage.trim()) ||
-      (typeof b.mobileImage === 'string' && b.mobileImage.trim()) ||
-      (typeof b.mobileBannerImage === 'string' && b.mobileBannerImage.trim())
-    );
-  }) : [];
-  const displayBanners = activeLiveBanners.length > 0 ? activeLiveBanners : defaultStaticBanners;
-
-  const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
-
-  useEffect(() => {
-    setCurrentBannerIndex(0);
-  }, [displayBanners.length]);
-
-  // Swipe states
-  const [touchStart, setTouchStart] = useState<number | null>(null);
-  const [touchEnd, setTouchEnd] = useState<number | null>(null);
-  const minSwipeDistance = 50;
-
-  const onTouchStartBanner = (e: React.TouchEvent) => {
-    setTouchEnd(null);
-    setTouchStart(e.targetTouches[0].clientX);
-  };
-
-  const onTouchMoveBanner = (e: React.TouchEvent) => {
-    setTouchEnd(e.targetTouches[0].clientX);
-  };
-
-  const onTouchEndBanner = () => {
-    if (!touchStart || !touchEnd) return;
-    const distance = touchStart - touchEnd;
-    const isLeftSwipe = distance > minSwipeDistance;
-    const isRightSwipe = distance < -minSwipeDistance;
-    if (isLeftSwipe) {
-      setCurrentBannerIndex(prev => (prev + 1) % displayBanners.length);
-    }
-    if (isRightSwipe) {
-      setCurrentBannerIndex(prev => (prev - 1 + displayBanners.length) % displayBanners.length);
-    }
-  };
-
-  // Auto-avance del carrusel
-  useEffect(() => {
-    if (displayBanners.length === 0) return;
-    const interval = setInterval(() => {
-      setCurrentBannerIndex(prev => (prev + 1) % displayBanners.length);
-    }, 15000);
-    return () => clearInterval(interval);
-  }, [displayBanners.length]);
-
-  const nextBanner = (e?: React.MouseEvent) => {
-    e?.stopPropagation();
-    setCurrentBannerIndex(prev => (prev + 1) % displayBanners.length);
-  };
-
-  const prevBanner = (e?: React.MouseEvent) => {
-    e?.stopPropagation();
-    setCurrentBannerIndex(prev => (prev - 1 + displayBanners.length) % displayBanners.length);
-  };
-
-  const currentBanner = displayBanners[currentBannerIndex] || displayBanners[0] || defaultStaticBanners[0];
+  const displayBanners = heroBanners && heroBanners.length > 0 ? heroBanners : defaultStaticBanners;
 
   // SEARCH MODE
   if (searchQuery) {
@@ -726,206 +663,15 @@ const HomeView = ({
         <div className="w-full bg-black min-h-[65vh] md:min-h-[75vh]" />
       ) : (
       <>
-        {/* Hero Carousel Dinámico */}
-        <div 
-          onClick={(e) => {
-            e?.stopPropagation();
-          if (currentBanner.seriesId) {
-            const linkedSeries = seriesData.find(s => s.id === currentBanner.seriesId);
-            if (linkedSeries) onSeriesClick(linkedSeries);
-          } else if (currentBanner.id && currentBanner.id.startsWith('serie-')) {
-            onSeriesClick(currentBanner);
-          }
-        }}
-        onTouchStart={onTouchStartBanner}
-        onTouchMove={onTouchMoveBanner}
-        onTouchEnd={onTouchEndBanner}
-        className="relative w-full overflow-hidden mx-auto max-w-none group transition-all duration-300 cursor-pointer bg-black min-h-[65vh] md:min-h-[75vh] flex items-center"
-        style={{ maxWidth: '2880px' }}
-      >
-        <div className="hidden md:block w-full relative min-h-[65vh] md:min-h-[75vh]">
-          <AnimatePresence initial={false} mode="popLayout">
-            <motion.div 
-              key={currentBanner.id || currentBannerIndex}
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              transition={{ duration: 0.8, ease: "easeOut" }}
-              className="absolute inset-0 w-full h-full"
-            >
-                <picture className="absolute inset-0 w-full h-full block">
-                  <source media="(max-width: 768px)" srcSet={currentBanner.mobileImage || currentBanner.mobileBannerImage || currentBanner.coverImage || undefined} />
-                  <img 
-                    src={currentBanner.desktopImage || currentBanner.bannerImage || currentBanner.coverImage || undefined} 
-                    alt={currentBanner.title} 
-                    className="absolute inset-0 w-full h-full block object-cover object-center"
-                    referrerPolicy="no-referrer"
-                  />
-                </picture>
-                
-                {/* Degradado superpuesto para texto */}
-                
-                <div className="absolute inset-0 flex flex-col justify-center items-start p-8 pt-32 pl-12 md:pl-24 lg:pl-40 z-10">
-                  <div className="max-w-4xl relative">
-                    <motion.div
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.2, duration: 0.4 }}
-                    >
-                      {currentBanner.logoUrl ? (
-                        <img 
-                          src={currentBanner.logoUrl || undefined} 
-                          alt={currentBanner.title} 
-                          className="max-w-[280px] md:max-w-[400px] lg:max-w-[500px] max-h-[100px] md:max-h-[140px] lg:max-h-[180px] w-auto h-auto object-contain object-left mb-6 drop-shadow-lg" 
-                          referrerPolicy="no-referrer"
-                        />
-                      ) : (
-                        <h1 className="font-gravity text-3xl md:text-5xl font-extrabold text-white mb-2 leading-none">
-                          {currentBanner.title}
-                        </h1>
-                      )}
-                      
-                      <h2 className="text-white font-gravity font-bold text-base md:text-xl mb-2">
-                        {currentBanner.bannerText || (currentBanner.isComingSoon ? 'Muy Pronto' : 'Todos los episodios disponibles')}
-                      </h2>
-
-                      <div className="flex items-center gap-2 text-gray-300 text-[10px] md:text-xs font-medium">
-                         <span className="bg-white/20 px-1.5 py-0.5 rounded text-white border border-white/10">{currentBanner.contentRating || "TV-14"}</span>
-                         {('bannerCustomText' in currentBanner) && (currentBanner as any).bannerCustomText ? (
-                            <span className="text-white">{String((currentBanner as any).bannerCustomText)}</span>
-                         ) : (
-                           <>
-                             <span>{currentBanner.year || '2000'}</span>
-                             <span>•</span>
-                             <span>{currentBanner.genre || 'Reality'}</span>
-                           </>
-                         )}
-                      </div>
-                      
-                      <p className="text-gray-300 text-sm md:text-base line-clamp-2 md:line-clamp-3 mt-4 mb-6 font-inter font-medium leading-relaxed drop-shadow-sm max-w-xl">
-                        {currentBanner.description}
-                      </p>
-                    </motion.div>
-                  </div>
-                </div>
-            </motion.div>
-          </AnimatePresence>
-        </div>
-
-        {/* Mobile Version - 1080x1440 Poster aspect ratio */}
-        <div className="md:hidden w-full relative min-h-[65vh] overflow-hidden">
-          <img 
-            src={currentBanner.mobileImage || currentBanner.mobileBannerImage || currentBanner.coverImage || undefined} 
-            alt={currentBanner.title} 
-            className="absolute inset-0 w-full h-full object-cover"
-          />
-
-          {/* Bottom UI inside card */}
-          <div className="absolute inset-x-0 bottom-0 p-5 pb-8 flex flex-col items-center justify-end z-10 h-full">
-            {/* Logo */}
-            {(currentBanner.mobileLogoUrl || currentBanner.logoUrl) && (
-              <img 
-                src={currentBanner.mobileLogoUrl || currentBanner.logoUrl} 
-                className="max-w-[85%] max-h-[100px] w-auto h-auto object-contain drop-shadow-[0_0_15px_rgba(0,0,0,0.6)] mb-4" 
-                alt="Logo" 
-              />
-            )}
-            
-            {/* Metadata */}
-            <div className="flex items-center gap-2 text-white/90 text-[13px] font-medium drop-shadow-md mb-3">
-               <span className="bg-white/20 px-1.5 py-0.5 rounded text-white border border-white/10">{currentBanner.contentRating || "TV-14"}</span>
-               {('bannerCustomText' in currentBanner) && (currentBanner as any).bannerCustomText ? (
-                 <span>{String((currentBanner as any).bannerCustomText)}</span>
-               ) : (
-                 <>
-                   <span>{currentBanner.year || '2000'}</span>
-                   <span>•</span>
-                   <span>{currentBanner.genre || 'Reality'}</span>
-                 </>
-               )}
-            </div>
-
-            {/* Buttons */}
-            <div className="flex items-center gap-3 w-full">
-              {currentBanner.id === "serie-3" ? (
-                <button 
-                  onClick={(e) => {
-                    e?.stopPropagation();
-                    if (currentBanner.seriesId) {
-                      const linkedSeries = seriesData.find(s => s.id === currentBanner.seriesId);
-                      if (linkedSeries) onSeriesClick(linkedSeries);
-                    } else if (currentBanner.id && currentBanner.id.startsWith('serie-')) {
-                      onSeriesClick(currentBanner);
-                    }
-                  }}
-                  className="flex-1 bg-white text-black font-inter font-black py-4 rounded-xl flex items-center justify-center gap-2 text-[15px] active:scale-95 transition-transform shadow-lg"
-                >
-                  <Play size={20} className="fill-black" />
-                  PRÓXIMAMENTE
-                </button>
-              ) : (
-                <>
-                  <button 
-                    onClick={(e) => {
-                      e?.stopPropagation();
-                      if (currentBanner.seriesId) {
-                        const linkedSeries = seriesData.find(s => s.id === currentBanner.seriesId);
-                        if (linkedSeries) onSeriesClick(linkedSeries);
-                      } else if (currentBanner.id && currentBanner.id.startsWith('serie-')) {
-                        onSeriesClick(currentBanner);
-                      }
-                    }}
-                    className="flex-[3] bg-white text-black font-inter font-black py-4 rounded-xl flex items-center justify-center gap-2 text-[15px] active:scale-95 transition-transform shadow-lg"
-                  >
-                    <Play size={20} className="fill-black" />
-                    REPRODUCIR
-                  </button>
-                  <button 
-                    onClick={(e) => { e.stopPropagation(); onToggleFav(e, currentBanner.id); }}
-                    className="flex-[2] bg-[#2a2a2a]/60 text-white font-inter font-black py-4 rounded-xl flex items-center justify-center gap-2 text-[15px] backdrop-blur-md border border-white/10 active:scale-95 transition-transform shadow-md"
-                  >
-                    {favorites.includes(currentBanner.id) ? (
-                      <Check size={20} />
-                    ) : (
-                      <Plus size={20} />
-                    )}
-                    MI LISTA
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-        
-        {/* Controles del Carrusel */}
-        {displayBanners.length > 1 && (
-          <>
-            <button 
-              onClick={prevBanner}
-              className="absolute left-4 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/20 hover:bg-black/60 text-white backdrop-blur-sm transition-all opacity-0 group-hover:opacity-100 hidden md:block z-20"
-            >
-              <ChevronLeft size={32} />
-            </button>
-            <button 
-              onClick={nextBanner}
-              className="absolute right-4 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/20 hover:bg-black/60 text-white backdrop-blur-sm transition-all opacity-0 group-hover:opacity-100 hidden md:block z-20"
-            >
-              <ChevronRight size={32} />
-            </button>
-            
-            {/* Indicadores (Puntos) */}
-            <div className="absolute bottom-2 md:bottom-10 right-1/2 translate-x-1/2 flex gap-2 z-20">
-              {displayBanners.map((_, idx) => (
-                <button
-                  key={idx}
-                  onClick={(e) => { e.stopPropagation(); setCurrentBannerIndex(idx); }}
-                  className={`transition-all duration-300 rounded-full ${currentBannerIndex === idx ? 'w-6 md:w-8 h-2 md:h-2.5 bg-pink-500' : 'w-2 md:w-2.5 h-2 md:h-2.5 bg-white/40 hover:bg-white/60'}`}
-                />
-              ))}
-            </div>
-          </>
-        )}
-      </div>
+        {/* Hero Carousel Dinámico (editable desde el panel: Gestor de Banners) */}
+        <HeroCarousel
+          banners={displayBanners}
+          seriesData={seriesData}
+          favorites={favorites}
+          autoplaySeconds={appConfig.heroAutoplaySeconds ?? 15}
+          onSeriesClick={onSeriesClick}
+          onToggleFav={onToggleFav}
+        />
       </>
       )}
 
